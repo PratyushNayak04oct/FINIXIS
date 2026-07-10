@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.CustomerDetailController"
+            fitToWidth="true" fitToHeight="true" styleClass="scroll-pane" hbarPolicy="NEVER">
+    <VBox styleClass="page" prefWidth="960" spacing="20">
+        <Button text="Back to Accounts" styleClass="btn,btn-ghost" onAction="#onBack" alignment="BASELINE_LEFT">
+            <graphic><FontIcon iconLiteral="fas-arrow-left"/></graphic>
+        </Button>
+
+        <HBox styleClass="card,card-pad" spacing="20" alignment="CENTER_LEFT">
+            <Label fx:id="avatar" text="?" styleClass="avatar"/>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label fx:id="nameLabel" text="—" styleClass="page-title"/>
+                <Label fx:id="contactLabel" text="—" styleClass="txn-meta"/>
+                <Label fx:id="sinceLabel" text="—" styleClass="txn-meta"/>
+            </VBox>
+            <VBox alignment="CENTER_RIGHT" spacing="2">
+                <Label text="CURRENT BALANCE" styleClass="stat-label"/>
+                <Label fx:id="balanceLabel" text="—" styleClass="stat-value"/>
+            </VBox>
+        </HBox>
+
+        <HBox spacing="10">
+            <Label fx:id="chipTxns" text="—" styleClass="chip,chip-primary"/>
+            <Label fx:id="chipLast" text="—" styleClass="chip"/>
+            <Label fx:id="chipOngoing" text="—" styleClass="chip,chip-warning"/>
+        </HBox>
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Button fx:id="addCreditBtn" text="Add Credit" styleClass="btn" onAction="#onAddCredit">
+                <graphic><FontIcon iconLiteral="fas-plus"/></graphic>
+            </Button>
+            <Button fx:id="addDebitBtn" text="Add Debit" styleClass="btn,btn-secondary" onAction="#onAddDebit">
+                <graphic><FontIcon iconLiteral="fas-minus"/></graphic>
+            </Button>
+            <Button fx:id="recordPaymentBtn" text="Record Payment" styleClass="btn,btn-secondary" onAction="#onRecordPayment">
+                <graphic><FontIcon iconLiteral="fas-money-bill-wave"/></graphic>
+            </Button>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="deleteBtn" text="Delete Customer" styleClass="btn,btn-danger" onAction="#onDelete">
+                <graphic><FontIcon iconLiteral="fas-trash"/></graphic>
+            </Button>
+        </HBox>
+
+        <VBox styleClass="card,card-pad" spacing="6">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="TRANSACTION HISTORY" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+                <ComboBox fx:id="dateRangeCombo" styleClass="combo" onAction="#onDateRange"/>
+            </HBox>
+            <VBox fx:id="historyBox" spacing="4"/>
+        </VBox>
+    </VBox>
+</ScrollPane>

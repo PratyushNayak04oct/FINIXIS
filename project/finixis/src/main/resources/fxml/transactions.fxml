@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.TransactionsController"
+            fitToWidth="true" fitToHeight="true" styleClass="scroll-pane" hbarPolicy="NEVER">
+    <VBox styleClass="page" prefWidth="960" spacing="18">
+        <HBox alignment="CENTER_LEFT" spacing="14">
+            <FontIcon iconLiteral="fas-exchange-alt" styleClass="page-title"/>
+            <VBox>
+                <Label text="Transactions" styleClass="page-title"/>
+                <Label text="All transactions, grouped by date" styleClass="page-subtitle"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="exportBtn" text="Export" styleClass="btn,btn-secondary" onAction="#onExport">
+                <graphic><FontIcon iconLiteral="fas-file-export"/></graphic>
+            </Button>
+            <Button fx:id="reportBtn" text="Generate Report" styleClass="btn,btn-secondary" onAction="#onReport">
+                <graphic><FontIcon iconLiteral="fas-chart-bar"/></graphic>
+            </Button>
+            <Button fx:id="invoiceBtn" text="Create Invoice" styleClass="btn,btn-secondary" onAction="#onInvoice">
+                <graphic><FontIcon iconLiteral="fas-file-invoice"/></graphic>
+            </Button>
+            <Button fx:id="addTxnBtn" text="New Transaction" styleClass="btn" onAction="#onAddTxn">
+                <graphic><FontIcon iconLiteral="fas-plus"/></graphic>
+            </Button>
+        </HBox>
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <TextField fx:id="searchField" promptText="Search transactions..." styleClass="search-box" onKeyReleased="#onSearch"/>
+            <ComboBox fx:id="typeCombo" styleClass="combo" onAction="#onFilter"/>
+            <ComboBox fx:id="dateRangeCombo" styleClass="combo" onAction="#onFilter"/>
+        </HBox>
+
+        <VBox fx:id="groupedBox" spacing="4"/>
+    </VBox>
+</ScrollPane>

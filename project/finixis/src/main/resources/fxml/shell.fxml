@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.ShellController"
+      styleClass="shell-root" spacing="0">
+    <!-- Top nav bar -->
+    <HBox styleClass="topbar" alignment="CENTER_LEFT" spacing="16">
+        <padding><javafx.geometry.Insets top="0" right="20" bottom="0" left="20"/></padding>
+        <FontIcon iconLiteral="fas-bars" styleClass="topbar-icon" onMouseClicked="#toggleMenu"/>
+        <Label text="Finixis" styleClass="brand"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label text="Viewing as:" styleClass="topbar-label"/>
+        <ComboBox fx:id="roleCombo" styleClass="role-combo" onAction="#onRoleChanged"/>
+        <Button fx:id="themeBtn" text="Dark" styleClass="theme-btn" onAction="#onToggleTheme"/>
+        <Button text="Account" styleClass="nav-btn" onAction="#goAccount"/>
+    </HBox>
+
+    <HBox styleClass="body" spacing="0" VBox.vgrow="ALWAYS">
+        <!-- Side menu -->
+        <VBox fx:id="sideMenu" styleClass="side-menu" spacing="2" managed="${sideMenu.visible}">
+            <padding><javafx.geometry.Insets top="14" right="0" bottom="14" left="8"/></padding>
+            <Label text="MENU" styleClass="menu-section"/>
+            <Button fx:id="navHome" text="Home" styleClass="menu-item,menu-active" onAction="#goHome" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-home"/></graphic>
+            </Button>
+            <Button fx:id="navAccounts" text="Accounts" styleClass="menu-item" onAction="#goAccounts" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-users"/></graphic>
+            </Button>
+            <Button fx:id="navCredit" text="Credit" styleClass="menu-item" onAction="#goCredit" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-credit-card"/></graphic>
+            </Button>
+            <Button fx:id="navInventory" text="Inventory" styleClass="menu-item" onAction="#goInventory" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-boxes"/></graphic>
+            </Button>
+            <Button fx:id="navTransactions" text="Transactions" styleClass="menu-item" onAction="#goTransactions" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-exchange-alt"/></graphic>
+            </Button>
+            <Button fx:id="navReports" text="Reports" styleClass="menu-item" onAction="#goReports" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-chart-bar"/></graphic>
+            </Button>
+            <Button fx:id="navUsers" text="User Management" styleClass="menu-item" onAction="#goUsers" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-user-shield"/></graphic>
+            </Button>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Label text="SIGN OUT" styleClass="menu-section"/>
+            <Button text="Sign Out" styleClass="menu-item,menu-danger" onAction="#onSignOut" maxWidth="1.7976931348623157E308" alignment="BASELINE_LEFT">
+                <graphic><FontIcon iconLiteral="fas-sign-out-alt"/></graphic>
+            </Button>
+        </VBox>
+
+        <!-- Page content host -->
+        <StackPane fx:id="contentHost" styleClass="content-host" StackPane.alignment="TOP_LEFT" HBox.hgrow="ALWAYS"/>
+    </HBox>
+</VBox>

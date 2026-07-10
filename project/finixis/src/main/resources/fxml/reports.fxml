@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+<?import javafx.scene.chart.*?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.ReportsController"
+            fitToWidth="true" fitToHeight="true" styleClass="scroll-pane" hbarPolicy="NEVER">
+    <VBox styleClass="page" prefWidth="960" spacing="20">
+        <HBox alignment="CENTER_LEFT" spacing="14">
+            <FontIcon iconLiteral="fas-chart-bar" styleClass="page-title"/>
+            <VBox>
+                <Label text="Reports &amp; Summary" styleClass="page-title"/>
+                <Label text="Financial overview with mock totals" styleClass="page-subtitle"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <ComboBox fx:id="rangeCombo" styleClass="combo"/>
+            <Button fx:id="exportBtn" text="Export" styleClass="btn,btn-secondary" onAction="#onExport">
+                <graphic><FontIcon iconLiteral="fas-file-export"/></graphic>
+            </Button>
+        </HBox>
+
+        <HBox spacing="16">
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                <Label text="Total Credits" styleClass="stat-label"/>
+                <Label fx:id="totalCredits" text="—" styleClass="stat-value,stat-positive"/>
+            </VBox>
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                <Label text="Total Debits" styleClass="stat-label"/>
+                <Label fx:id="totalDebits" text="—" styleClass="stat-value,stat-negative"/>
+            </VBox>
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                <Label text="Net" styleClass="stat-label"/>
+                <Label fx:id="netLabel" text="—" styleClass="stat-value"/>
+            </VBox>
+        </HBox>
+
+        <VBox styleClass="card,card-pad" spacing="12">
+            <Label text="MONTHLY BREAKDOWN (MOCK)" styleClass="card-title"/>
+            <BarChart fx:id="chart" prefHeight="340" legendVisible="true" animated="false"/>
+        </VBox>
+    </VBox>
+</ScrollPane>
