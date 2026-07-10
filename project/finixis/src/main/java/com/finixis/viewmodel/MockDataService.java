@@ -18,12 +18,12 @@ public class MockDataService {
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Credit> credits = new ArrayList<>();
     private final List<Invoice> invoices = new ArrayList<>();
+    private final List<GeneratedFile> generatedFiles = new ArrayList<>();
 
     private int customerIdSeq = 100;
     private int creditIdSeq = 200;
     private int txnIdSeq = 300;
     private int itemIdSeq = 400;
-    private int userIdSeq = 500;
     private int invoiceIdSeq = 600;
 
     public MockDataService() {
@@ -31,10 +31,10 @@ public class MockDataService {
     }
 
     private void seed() {
-        // --- Users (one per role) ---
-        users.add(new User(501, "Amelia Hart", "amelia.hart@finixis.com", "+1 (415) 555-0142", Role.ADMIN, true));
-        users.add(new User(502, "Daniel Osei", "daniel.osei@finixis.com", "+1 (415) 555-0177", Role.MANAGER, true));
-        users.add(new User(503, "Priya Raman", "priya.raman@finixis.com", "+1 (415) 555-0193", Role.EMPLOYEE, true));
+        // --- Staff users (for profile page) ---
+        users.add(new User(501, "Amelia Hart",  "amelia.hart@finixis.com",  "+1 (415) 555-0142", Role.ADMIN,    true));
+        users.add(new User(502, "Daniel Osei",  "daniel.osei@finixis.com",  "+1 (415) 555-0177", Role.MANAGER,  true));
+        users.add(new User(503, "Priya Raman",  "priya.raman@finixis.com",  "+1 (415) 555-0193", Role.EMPLOYEE, true));
 
         // --- Customers (~12, varied balances + customer-since dates) ---
         addCustomer("Atlas Building Supplies", "+1 (212) 555-0110", "billing@atlasbuild.com",
@@ -76,7 +76,7 @@ public class MockDataService {
         addItem("Tape Measure 5m", "TMS-005", "Tools", 130, 30, 8.40);
         addItem("Safety Goggles", "GOG-001", "Safety Gear", 8, 25, 6.25);
 
-        // --- Credits (some settled, some pending/ongoing) ---
+        // --- Credits (some settled, some pending) ---
         addCredit(1, "Cedar & Co. Cafe", 1230.50, "Bulk coffee beans — 60kg",
                 LocalDate.of(2024, 8, 15), LocalDate.of(2024, 9, 15), false);
         addCredit(2, "Northwind Logistics", 6720.00, "Forklift parts & service",
@@ -156,18 +156,21 @@ public class MockDataService {
         invoices.add(new Invoice(601, "INV-2024-0142", 10, "Vertex Construction",
                 LocalDate.now().minusDays(1), LocalDate.now().plusDays(29),
                 5400.00, 432.00, 5832.00,
-                List.of(
+                java.util.List.of(
                         new Invoice.LineItem("Concrete — 40 cubic meters", 40, 135.00, 5400.00)
                 )));
         invoices.add(new Invoice(602, "INV-2024-0143", 1, "Atlas Building Supplies",
                 LocalDate.now().minusDays(2), LocalDate.now().plusDays(28),
                 4850.00, 388.00, 5238.00,
-                List.of(
+                java.util.List.of(
                         new Invoice.LineItem("Cement Mix 25kg", 100, 12.50, 1250.00),
                         new Invoice.LineItem("Plywood Sheet 8x4", 20, 34.00, 680.00),
                         new Invoice.LineItem("Brick Paver Red", 200, 1.20, 240.00),
                         new Invoice.LineItem("Roofing materials (assorted)", 1, 2680.00, 2680.00)
                 )));
+
+        // --- Pre-seed generated files so Reports page isn't empty on launch ---
+        generatedFiles.addAll(FileGenerationService.seedSampleFiles(transactions, invoices));
     }
 
     // --- seq helpers ---
@@ -200,12 +203,14 @@ public class MockDataService {
     public List<Transaction> getTransactions() { return transactions; }
     public List<Credit> getCredits() { return credits; }
     public List<Invoice> getInvoices() { return invoices; }
+    public List<GeneratedFile> getGeneratedFiles() { return generatedFiles; }
+
+    public void addGeneratedFile(GeneratedFile f) { generatedFiles.add(f); }
 
     public int nextCustomerId() { return ++customerIdSeq; }
     public int nextCreditId() { return ++creditIdSeq; }
     public int nextTxnId() { return ++txnIdSeq; }
     public int nextItemId() { return ++itemIdSeq; }
-    public int nextUserId() { return ++userIdSeq; }
     public int nextInvoiceId() { return ++invoiceIdSeq; }
 
     public Customer findCustomer(int id) {

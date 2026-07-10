@@ -3,14 +3,17 @@
 <?import javafx.scene.layout.*?>
 <?import org.kordamp.ikonli.javafx.*?>
 
-<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.TransactionsController"
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.finixis.controller.TransactionsController"
             fitToWidth="true" fitToHeight="true" styleClass="scroll-pane" hbarPolicy="NEVER">
     <VBox styleClass="page" prefWidth="960" spacing="18">
+
+        <!-- Page header + action buttons -->
         <HBox alignment="CENTER_LEFT" spacing="14">
             <FontIcon iconLiteral="fas-exchange-alt" styleClass="page-title"/>
             <VBox>
-                <Label text="Transactions" styleClass="page-title"/>
-                <Label text="All transactions, grouped by date" styleClass="page-subtitle"/>
+                <Label text="Transaction History" styleClass="page-title"/>
+                <Label text="All transactions across customers, grouped by date" styleClass="page-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
             <Button fx:id="exportBtn" text="Export" styleClass="btn,btn-secondary" onAction="#onExport">
@@ -19,20 +22,29 @@
             <Button fx:id="reportBtn" text="Generate Report" styleClass="btn,btn-secondary" onAction="#onReport">
                 <graphic><FontIcon iconLiteral="fas-chart-bar"/></graphic>
             </Button>
-            <Button fx:id="invoiceBtn" text="Create Invoice" styleClass="btn,btn-secondary" onAction="#onInvoice">
+            <Button fx:id="invoiceBtn" text="Create Invoice" styleClass="btn" onAction="#onInvoice">
                 <graphic><FontIcon iconLiteral="fas-file-invoice"/></graphic>
-            </Button>
-            <Button fx:id="addTxnBtn" text="New Transaction" styleClass="btn" onAction="#onAddTxn">
-                <graphic><FontIcon iconLiteral="fas-plus"/></graphic>
             </Button>
         </HBox>
 
+        <!-- Filters -->
         <HBox spacing="10" alignment="CENTER_LEFT">
-            <TextField fx:id="searchField" promptText="Search transactions..." styleClass="search-box" onKeyReleased="#onSearch"/>
+            <TextField fx:id="searchField" promptText="Search by customer or description…"
+                       styleClass="search-box" onKeyReleased="#onSearch"/>
             <ComboBox fx:id="typeCombo" styleClass="combo" onAction="#onFilter"/>
             <ComboBox fx:id="dateRangeCombo" styleClass="combo" onAction="#onFilter"/>
         </HBox>
 
+        <!-- Status legend -->
+        <HBox spacing="14" alignment="CENTER_LEFT">
+            <Label text="Status:" styleClass="txn-meta"/>
+            <Label text="To Receive" styleClass="chip,chip-primary"/>
+            <Label text="To Pay" styleClass="chip,chip-error"/>
+            <Label text="All Cleared" styleClass="chip,chip-success"/>
+        </HBox>
+
+        <!-- Grouped transaction list (populated in code) -->
         <VBox fx:id="groupedBox" spacing="4"/>
+
     </VBox>
 </ScrollPane>

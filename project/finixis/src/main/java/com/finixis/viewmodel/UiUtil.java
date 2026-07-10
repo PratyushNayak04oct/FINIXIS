@@ -16,7 +16,7 @@ public final class UiUtil {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US);
 
     public static String money(double v) {
-        return String.format(Locale.US, "$%,.2f", v);
+        return String.format(Locale.US, "₹%,.2f", v);
     }
 
     public static String signedMoney(double v) {

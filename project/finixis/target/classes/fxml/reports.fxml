@@ -4,40 +4,60 @@
 <?import org.kordamp.ikonli.javafx.*?>
 <?import javafx.scene.chart.*?>
 
-<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" fx:controller="com.finixis.controller.ReportsController"
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.finixis.controller.ReportsController"
             fitToWidth="true" fitToHeight="true" styleClass="scroll-pane" hbarPolicy="NEVER">
     <VBox styleClass="page" prefWidth="960" spacing="20">
+
+        <!-- Page header -->
         <HBox alignment="CENTER_LEFT" spacing="14">
             <FontIcon iconLiteral="fas-chart-bar" styleClass="page-title"/>
             <VBox>
                 <Label text="Reports &amp; Summary" styleClass="page-title"/>
-                <Label text="Financial overview with mock totals" styleClass="page-subtitle"/>
+                <Label text="Financial overview and generated file downloads" styleClass="page-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
             <ComboBox fx:id="rangeCombo" styleClass="combo"/>
-            <Button fx:id="exportBtn" text="Export" styleClass="btn,btn-secondary" onAction="#onExport">
-                <graphic><FontIcon iconLiteral="fas-file-export"/></graphic>
-            </Button>
         </HBox>
 
+        <!-- Summary stat cards -->
         <HBox spacing="16">
             <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                 <Label text="Total Credits" styleClass="stat-label"/>
                 <Label fx:id="totalCredits" text="—" styleClass="stat-value,stat-positive"/>
             </VBox>
             <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
-                <Label text="Total Debits" styleClass="stat-label"/>
+                <Label text="Total Payments" styleClass="stat-label"/>
                 <Label fx:id="totalDebits" text="—" styleClass="stat-value,stat-negative"/>
             </VBox>
             <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
-                <Label text="Net" styleClass="stat-label"/>
+                <Label text="Net Outstanding" styleClass="stat-label"/>
                 <Label fx:id="netLabel" text="—" styleClass="stat-value"/>
             </VBox>
         </HBox>
 
+        <!-- Chart -->
         <VBox styleClass="card,card-pad" spacing="12">
-            <Label text="MONTHLY BREAKDOWN (MOCK)" styleClass="card-title"/>
-            <BarChart fx:id="chart" prefHeight="340" legendVisible="true" animated="false"/>
+            <Label text="MONTHLY BREAKDOWN (MOCK DATA)" styleClass="card-title"/>
+            <BarChart fx:id="chart" prefHeight="300" legendVisible="true" animated="false">
+                <xAxis>
+                    <CategoryAxis label="Month"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="Amount (₹)"/>
+                </yAxis>
+            </BarChart>
         </VBox>
+
+        <!-- Generated Files section -->
+        <VBox styleClass="card,card-pad" spacing="12">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <FontIcon iconLiteral="fas-folder-open" styleClass="icon-sm"/>
+                <Label text="GENERATED FILES" styleClass="card-title" HBox.hgrow="ALWAYS"/>
+                <Label text="Files persist for this session — click Download to open/save." styleClass="txn-meta"/>
+            </HBox>
+            <VBox fx:id="filesBox" spacing="6"/>
+        </VBox>
+
     </VBox>
 </ScrollPane>

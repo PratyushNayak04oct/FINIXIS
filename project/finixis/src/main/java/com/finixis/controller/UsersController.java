@@ -4,7 +4,6 @@ import com.finixis.App;
 import com.finixis.model.Role;
 import com.finixis.model.User;
 import com.finixis.viewmodel.MockDataService;
-import com.finixis.viewmodel.Permissions;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -16,6 +15,10 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+/**
+ * User Management page — kept for completeness but not in the navigation for this MVP.
+ * No role restrictions apply.
+ */
 public class UsersController implements Initializable, PageController {
 
     @FXML private Button addUserBtn;
@@ -40,36 +43,39 @@ public class UsersController implements Initializable, PageController {
         roleCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Role r, boolean empty) {
                 super.updateItem(r, empty);
-                if (empty || r == null) { setGraphic(null); return; }
+                if (empty || r == null) { setGraphic(null); setText(null); return; }
                 Label chip = new Label(r.getDisplay());
-                chip.getStyleClass().add(switch (r) {
-                    case ADMIN -> "chip,chip-error";
-                    case MANAGER -> "chip,chip-primary";
-                    case EMPLOYEE -> "chip,chip-success";
+                chip.getStyleClass().addAll("chip", switch (r) {
+                    case ADMIN    -> "chip-error";
+                    case MANAGER  -> "chip-primary";
+                    case EMPLOYEE -> "chip-success";
                 });
                 setGraphic(chip);
+                setText(null);
             }
         });
 
         statusCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Boolean a, boolean empty) {
                 super.updateItem(a, empty);
-                if (empty || a == null) { setGraphic(null); return; }
+                if (empty || a == null) { setGraphic(null); setText(null); return; }
                 Label chip = new Label(a ? "Active" : "Inactive");
-                chip.getStyleClass().add(a ? "chip,chip-success" : "chip,chip-warning");
+                chip.getStyleClass().addAll("chip", a ? "chip-success" : "chip-warning");
                 setGraphic(chip);
+                setText(null);
             }
         });
 
         actionCol.setCellFactory(col -> new TableCell<>() {
             private final Button editBtn = new Button();
-            { editBtn.getStyleClass().add("icon-btn");
-              editBtn.setGraphic(new FontIcon("fas-pencil-alt"));
-              editBtn.setOnAction(e -> {
-                  User u = getTableView().getItems().get(getIndex());
-                  if (Permissions.canManageUsers(App.getSession().getCurrentRole()))
-                      Dialogs.info("Edit User", "This would open the Add/Edit User dialog for " + u.getName() + " (UI-only prototype).");
-              }); }
+            {
+                editBtn.getStyleClass().add("icon-btn");
+                editBtn.setGraphic(new FontIcon("fas-pencil-alt"));
+                editBtn.setOnAction(e -> {
+                    User u = getTableView().getItems().get(getIndex());
+                    Dialogs.info("Edit User", "Edit dialog for " + u.getName() + " (UI-only prototype).");
+                });
+            }
             @Override protected void updateItem(User u, boolean empty) {
                 super.updateItem(u, empty);
                 setGraphic(empty || u == null ? null : editBtn);
@@ -80,14 +86,6 @@ public class UsersController implements Initializable, PageController {
     }
 
     @FXML private void onAddUser() {
-        if (!Permissions.canManageUsers(App.getSession().getCurrentRole())) return;
         Dialogs.info("Add New User", "This would open the Add/Edit User dialog (UI-only prototype).");
-    }
-
-    @Override
-    public void applyRole(Role role) {
-        boolean can = Permissions.canManageUsers(role);
-        addUserBtn.setDisable(!can);
-        addUserBtn.setOpacity(can ? 1 : 0.4);
     }
 }

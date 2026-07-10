@@ -1,14 +1,14 @@
 package com.finixis.controller;
 
 import com.finixis.App;
-import com.finixis.model.Role;
+import com.finixis.model.GeneratedFile;
 import com.finixis.model.Transaction;
-import com.finixis.viewmodel.MockDataService;
-import com.finixis.viewmodel.Permissions;
+import com.finixis.service.AppServices;
+import com.finixis.service.ReportService;
+import com.finixis.service.TransactionService;
 import com.finixis.viewmodel.UiUtil;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -26,15 +26,17 @@ public class TransactionsController implements Initializable, PageController {
     @FXML private TextField searchField;
     @FXML private ComboBox<String> typeCombo, dateRangeCombo;
     @FXML private VBox groupedBox;
-    @FXML private Button exportBtn, reportBtn, invoiceBtn, addTxnBtn;
+    @FXML private Button exportBtn, reportBtn, invoiceBtn;
 
-    private MockDataService data;
+    private TransactionService txnService;
+    private ReportService      reportService;
     private static final String ALL = "All time", D90 = "Last 90 days", D30 = "Last 30 days";
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        data = App.getMockData();
-        typeCombo.getItems().addAll("All Types", "Credit", "Debit", "Payment");
+        txnService    = AppServices.transactions();
+        reportService = AppServices.reports();
+        typeCombo.getItems().addAll("All Types", "Credit", "Debit");
         typeCombo.getSelectionModel().select(0);
         dateRangeCombo.getItems().addAll(D30, D90, ALL);
         dateRangeCombo.getSelectionModel().select(ALL);
@@ -44,31 +46,38 @@ public class TransactionsController implements Initializable, PageController {
     private void render() {
         groupedBox.getChildren().clear();
         String q = searchField.getText().toLowerCase().trim();
-        String type = typeCombo.getValue();
+        String typeFilter = typeCombo.getValue();
+
         LocalDate cutoff = switch (dateRangeCombo.getValue()) {
             case D30 -> LocalDate.now().minusDays(30);
             case D90 -> LocalDate.now().minusDays(90);
-            default -> LocalDate.of(1900, 1, 1);
+            default  -> LocalDate.of(1900, 1, 1);
         };
 
-        List<Transaction> txns = data.getTransactions().stream()
-                .filter(t -> q.isEmpty() || t.getCustomerName().toLowerCase().contains(q)
-                        || t.getDescription().toLowerCase().contains(q))
-                .filter(t -> type.equals("All Types") || t.getType().name().equalsIgnoreCase(type))
-                .filter(t -> t.getDate().isAfter(cutoff) || t.getDate().isEqual(cutoff))
+        List<Transaction> txns = txnService.getAll().stream()
+                .filter(t -> q.isEmpty()
+                        || (t.getCustomerName() != null && t.getCustomerName().toLowerCase().contains(q))
+                        || (t.getDescription() != null && t.getDescription().toLowerCase().contains(q)))
+                .filter(t -> switch (typeFilter) {
+                    case "Credit" -> t.getType() == Transaction.Type.CREDIT;
+                    case "Debit"  -> t.getType() == Transaction.Type.DEBIT;
+                    default -> true;
+                })
+                .filter(t -> !t.getDate().isBefore(cutoff))
                 .sorted(Comparator.comparing(Transaction::getDate).reversed())
                 .collect(Collectors.toList());
+
+        if (txns.isEmpty()) {
+            Label empty = new Label("No transactions found.");
+            empty.getStyleClass().add("text-muted");
+            empty.setStyle("-fx-padding: 16 0;");
+            groupedBox.getChildren().add(empty);
+            return;
+        }
 
         LinkedHashMap<String, List<Transaction>> grouped = new LinkedHashMap<>();
         for (Transaction t : txns) {
             grouped.computeIfAbsent(UiUtil.dateRangeLabel(t.getDate()), k -> new ArrayList<>()).add(t);
-        }
-
-        if (txns.isEmpty()) {
-            Label empty = new Label("No transactions found.");
-            empty.setStyle("-fx-text-fill: -text-muted; -fx-padding: 16 0;");
-            groupedBox.getChildren().add(empty);
-            return;
         }
 
         for (Map.Entry<String, List<Transaction>> entry : grouped.entrySet()) {
@@ -88,7 +97,8 @@ public class TransactionsController implements Initializable, PageController {
         row.setOnMouseClicked(e -> App.getShell().openCustomer(t.getCustomerId()));
 
         VBox left = new VBox(3);
-        Label desc = new Label(t.getDescription());
+        Label desc = new Label(t.getDescription() != null && !t.getDescription().isBlank()
+                ? t.getDescription() : t.getType().name());
         desc.getStyleClass().add("txn-desc");
         Label meta = new Label(t.getCustomerName() + "  ·  " + UiUtil.date(t.getDate()) + "  ·  " + t.getType());
         meta.getStyleClass().add("txn-meta");
@@ -97,15 +107,30 @@ public class TransactionsController implements Initializable, PageController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        VBox right = new VBox(3);
+        VBox right = new VBox(4);
         right.setAlignment(Pos.CENTER_RIGHT);
-        Label amt = new Label(UiUtil.signedMoney(t.getType() == Transaction.Type.PAYMENT ? -t.getAmount() : t.getAmount()));
-        amt.getStyleClass().add("txn-amount");
-        amt.setStyle(t.getType() == Transaction.Type.PAYMENT ? "-fx-text-fill: -success-600;" : "-fx-text-fill: -text;");
-        Label badge = new Label(t.isOngoing() ? "ONGOING" : "SETTLED");
-        badge.getStyleClass().add(t.isOngoing() ? "chip,chip-warning" : "chip,chip-success");
-        right.getChildren().addAll(amt, badge);
 
+        Label amt = new Label(UiUtil.money(t.getAmount()));
+        amt.getStyleClass().add("txn-amount");
+
+        Label status = new Label();
+        status.getStyleClass().add("chip");
+
+        if (!t.isOngoing()) {
+            status.setText("All Cleared");
+            status.getStyleClass().add("chip-success");
+            amt.getStyleClass().add("text-normal");
+        } else if (t.getType() == Transaction.Type.DEBIT) {
+            status.setText("To Pay");
+            status.getStyleClass().add("chip-error");
+            amt.getStyleClass().addAll("text-error", "font-bold");
+        } else {
+            status.setText("To Receive");
+            status.getStyleClass().add("chip-primary");
+            amt.getStyleClass().add("text-normal");
+        }
+
+        right.getChildren().addAll(amt, status);
         row.getChildren().addAll(left, spacer, right);
         return row;
     }
@@ -113,33 +138,25 @@ public class TransactionsController implements Initializable, PageController {
     @FXML private void onSearch() { render(); }
     @FXML private void onFilter() { render(); }
 
-    @FXML private void onAddTxn() {
-        if (!Permissions.canAddTransaction(App.getSession().getCurrentRole())) return;
-        Dialogs.info("New Transaction", "This would open the Add New Transaction dialog (UI-only prototype).");
-    }
     @FXML private void onExport() {
-        if (!Permissions.canExportOrReport(App.getSession().getCurrentRole())) return;
-        Dialogs.generated("Report");
-    }
-    @FXML private void onReport() {
-        if (!Permissions.canExportOrReport(App.getSession().getCurrentRole())) return;
-        Dialogs.generated("Report");
-    }
-    @FXML private void onInvoice() {
-        if (!Permissions.canExportOrReport(App.getSession().getCurrentRole())) return;
-        Dialogs.generated("Invoice");
+        runFileAction(() -> reportService.exportTransactions(txnService), "Export");
     }
 
-    @Override
-    public void applyRole(Role role) {
-        boolean canExp = Permissions.canExportOrReport(role);
-        exportBtn.setDisable(!canExp);
-        exportBtn.setOpacity(canExp ? 1 : 0.4);
-        reportBtn.setDisable(!canExp);
-        reportBtn.setOpacity(canExp ? 1 : 0.4);
-        invoiceBtn.setDisable(!canExp);
-        invoiceBtn.setOpacity(canExp ? 1 : 0.4);
-        addTxnBtn.setDisable(!Permissions.canAddTransaction(role));
-        addTxnBtn.setOpacity(Permissions.canAddTransaction(role) ? 1 : 0.4);
+    @FXML private void onReport() {
+        runFileAction(() -> reportService.generateReport(txnService), "Report");
+    }
+
+    @FXML private void onInvoice() {
+        runFileAction(() -> reportService.createInvoice(txnService), "Invoice");
+    }
+
+    private void runFileAction(java.util.function.Supplier<List<GeneratedFile>> action, String label) {
+        try {
+            List<GeneratedFile> files = action.get();
+            UiUtil.toast(App.getRoot(),
+                    label + " saved! See Reports page to download (" + files.size() + " files).");
+        } catch (Exception ex) {
+            Dialogs.info(label + " Failed", "Could not write file:\n" + ex.getMessage());
+        }
     }
 }

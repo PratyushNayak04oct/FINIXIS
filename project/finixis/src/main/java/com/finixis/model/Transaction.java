@@ -9,24 +9,27 @@ public class Transaction {
     private int customerId;
     private String customerName;
     private Type type;
-    private double amount;
+    private double amount;      // totalAmount for CREDIT/PAYMENT; full amount for DEBIT
+    private double paidAmount;  // amount actually paid (CREDIT/PAYMENT only)
+    private double balance;     // amount - paidAmount (CREDIT/PAYMENT); same as amount for DEBIT
     private String description;
     private LocalDate date;
-    private boolean ongoing;
+    private boolean ongoing;    // false = settled / all cleared
 
-    public Transaction() {
-    }
+    public Transaction() {}
 
     public Transaction(int id, int customerId, String customerName, Type type,
                        double amount, String description, LocalDate date, boolean ongoing) {
-        this.id = id;
-        this.customerId = customerId;
+        this.id           = id;
+        this.customerId   = customerId;
         this.customerName = customerName;
-        this.type = type;
-        this.amount = amount;
-        this.description = description;
-        this.date = date;
-        this.ongoing = ongoing;
+        this.type         = type;
+        this.amount       = amount;
+        this.paidAmount   = type == Type.DEBIT ? 0 : amount;
+        this.balance      = 0;
+        this.description  = description;
+        this.date         = date;
+        this.ongoing      = ongoing;
     }
 
     public int getId() { return id; }
@@ -43,6 +46,12 @@ public class Transaction {
 
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
+
+    public double getPaidAmount() { return paidAmount; }
+    public void setPaidAmount(double paidAmount) { this.paidAmount = paidAmount; }
+
+    public double getBalance() { return balance; }
+    public void setBalance(double balance) { this.balance = balance; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

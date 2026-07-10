@@ -1,4 +1,6 @@
-/* ===== Finixis Dark Theme ===== */
+/* ===== Finixis Dark Theme — variable overrides only ===== */
+/* All component rules are defined in light-theme.css (which is always loaded first). */
+/* This file ONLY redefines the CSS variables. */
 
 .root, .shell-root {
     -primary-50:  #0b1f3a;
@@ -43,13 +45,15 @@
     -text-on-primary: #ffffff;
 }
 
+/* Dark-specific table row override */
 .table-view .table-row-cell:odd { -fx-background-color: #0f1a2e; }
-.menu-item:hover { -fx-background-color: -surface-2; }
-.btn-secondary { -fx-border-color: -border; }
 
-.dialog-pane {
-    -fx-background-color: -surface;
+/* Dark mode dialog button tweak */
+.dialog-pane .button {
+    -fx-background-color: -surface-2;
+    -fx-text-fill: -text;
+    -fx-border-color: -border;
 }
-.dialog-pane .header-panel { -fx-background-color: -surface; }
-.dialog-pane .label { -fx-text-fill: -text; }
-.dialog-pane .button { -fx-background-color: -surface-2; -fx-text-fill: -text; -fx-border-color: -border; }
+
+/* Chart dark overrides */
+.chart-plot-background { -fx-background-color: #111827; }
