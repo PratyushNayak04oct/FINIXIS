@@ -433,15 +433,20 @@
 /* Table cell alignment and padding */
 .table-cell {
     -fx-alignment: CENTER;
-    -fx-padding: 10 14;
+    -fx-padding: 12 16;
+}
+.table-cell.action-cell {
+    -fx-padding: 8 12;
+    -fx-alignment: CENTER;
 }
 .column-header .label {
     -fx-alignment: CENTER;
-    -fx-padding: 10 14;
-    -fx-font-weight: 600;
+    -fx-padding: 10 16;
+    -fx-font-weight: 700;
 }
 .table-row-cell {
-    -fx-pref-height: 48px;
+    -fx-pref-height: 56px;
+    -fx-min-height: 56px;
 }
 
 /* DatePicker light mode */

@@ -27,6 +27,11 @@ import java.util.function.Consumer;
 /**
  * Central place for all dialogs. Each dialog registers its Scene with ThemeManager so
  * the live theme toggle applies to open dialogs correctly.
+ *
+ * Layout pattern for all Stage-based dialogs:
+ *   outer VBox = [ScrollPane(contentVBox), buttonRow]
+ * Buttons are OUTSIDE the scroll so they are always visible.
+ * Stages are resizable with min/max width; height is determined by content.
  */
 public final class Dialogs {
     private Dialogs() {}
@@ -79,94 +84,67 @@ public final class Dialogs {
     // ─── Add Customer dialog ──────────────────────────────────────────────────
 
     public static void showAddCustomer(Consumer<Customer> onSaved) {
-        Stage stage = buildDialogStage("Add Customer", 460, 400);
+        Stage stage = buildDialogStage("Add Customer");
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Add Customer");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Enter the new customer's details below.");
-        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Add Customer");
+        Label sub   = dialogSub("Enter the new customer's details below.");
 
         TextField nameField  = styledField("Full name");
         TextField phoneField = styledField("Phone number");
         TextField emailField = styledField("Email address");
         TextField addrField  = styledField("Address");
 
-        VBox form = new VBox(12,
+        VBox form = new VBox(14,
                 labeledField("Name *", nameField),
                 labeledField("Phone", phoneField),
                 labeledField("Email", emailField),
                 labeledField("Address", addrField));
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err);
 
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Add Customer");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
             String name = nameField.getText().trim();
             if (name.isEmpty()) { err.setText("Name is required."); return; }
             Customer saved = AppServices.customers().addCustomer(
-                    name,
-                    phoneField.getText().trim(),
-                    emailField.getText().trim(),
-                    addrField.getText().trim());
+                    name, phoneField.getText().trim(),
+                    emailField.getText().trim(), addrField.getText().trim());
             stage.close();
             if (onSaved != null) onSaved.accept(saved);
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Add Debit dialog ────────────────────────────────────────────────────
 
     public static void showAddDebit(Customer customer, Runnable onConfirm) {
-        Stage stage = buildDialogStage("Add Debit — " + customer.getName(), 460, 340);
+        Stage stage = buildDialogStage("Add Debit — " + customer.getName());
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Add Debit");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Record an amount owed to " + customer.getName());
-        sub.setStyle("-fx-text-fill: -text-muted;");
-        VBox header = new VBox(4, title, sub);
+        VBox content = contentVBox();
+        Label title = dialogTitle("Add Debit");
+        Label sub   = dialogSub("Record an amount owed to " + customer.getName());
 
         VBox nameRow   = labeledField("Customer Name", readonlyField(customer.getName()));
         TextField amountField = styledField("0.00");
         VBox amountRow = labeledField("Amount (₹)", amountField);
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(new VBox(4, title, sub), new Separator(), nameRow, amountRow, err);
 
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Confirm Debit");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(header, new Separator(), nameRow, amountRow, err, btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
@@ -184,28 +162,17 @@ public final class Dialogs {
             if (onConfirm != null) onConfirm.run();
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Record Payment dialog ────────────────────────────────────────────────
 
     public static void showRecordPayment(Customer customer, Runnable onConfirm) {
-        Stage stage = buildDialogStage("Record Payment — " + customer.getName(), 580, 540);
+        Stage stage = buildDialogStage("Record Payment — " + customer.getName());
 
-        ScrollPane scroll = new ScrollPane();
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.getStyleClass().add("scroll-pane");
-
-        VBox root = new VBox(18);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-        scroll.setContent(root);
-
-        Label title = new Label("Record Payment");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Customer: " + customer.getName() + "  ·  Select items and enter amount paid.");
-        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Record Payment");
+        Label sub   = dialogSub("Customer: " + customer.getName() + "  ·  Select items and enter amount paid.");
 
         VBox itemsBox = new VBox(10);
         List<InventoryItem> inventory = AppServices.inventory().getAll();
@@ -218,8 +185,7 @@ public final class Dialogs {
         Label remainingLabel = new Label("₹0.00");
         remainingLabel.setStyle("-fx-font-weight:700; -fx-font-size:14px;");
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
 
         List<ComboBox<InventoryItem>> itemCombos = new ArrayList<>();
         List<TextField> qtyFields = new ArrayList<>();
@@ -266,7 +232,6 @@ public final class Dialogs {
             qtyField.setText("0");
             qtyField.setPrefWidth(70);
 
-            // Availability label updates live
             Label availLabel = new Label();
             availLabel.setStyle("-fx-font-size:11px;");
 
@@ -300,7 +265,7 @@ public final class Dialogs {
             qtyFields.add(qtyField);
             itemsBox.getChildren().add(row);
 
-            removeBtn.setOnAction(e -> {
+            removeBtn.setOnAction(ev -> {
                 int idx = itemsBox.getChildren().indexOf(row);
                 if (idx >= 0 && itemsBox.getChildren().size() > 1) {
                     itemsBox.getChildren().remove(row);
@@ -315,7 +280,7 @@ public final class Dialogs {
 
         Button addMoreBtn = new Button("+ Add another item");
         addMoreBtn.getStyleClass().addAll("btn", "btn-ghost");
-        addMoreBtn.setOnAction(e -> { addRowRef[0].run(); updateTotals.run(); });
+        addMoreBtn.setOnAction(ev -> { addRowRef[0].run(); updateTotals.run(); });
 
         paidField.textProperty().addListener((obs, o, n) -> updateTotals.run());
 
@@ -332,23 +297,17 @@ public final class Dialogs {
         remainingRow.setAlignment(Pos.CENTER_LEFT);
         remainingRow.setStyle("-fx-background-color: -surface-2; -fx-padding: 10 14; -fx-background-radius: 8;");
 
+        content.getChildren().addAll(
+                new VBox(4, title, sub), new Separator(),
+                itemsLabel, itemsBox, addMoreBtn,
+                new Separator(),
+                totalRow, paidRow, remainingRow, err);
+
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Confirm Payment");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(
-                new VBox(4, title, sub), new Separator(),
-                itemsLabel, itemsBox, addMoreBtn,
-                new Separator(),
-                totalRow, paidRow, remainingRow,
-                err, btns);
-
-        Scene scene = buildScene(stage, scroll);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
@@ -385,47 +344,35 @@ public final class Dialogs {
             if (onConfirm != null) onConfirm.run();
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Add Inventory Item dialog ────────────────────────────────────────────
 
     public static void showAddItem(Consumer<InventoryItem> onSaved) {
-        Stage stage = buildDialogStage("Add Inventory Item", 440, 360);
+        Stage stage = buildDialogStage("Add Inventory Item");
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Add Item");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Enter the details for the new inventory item.");
-        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Add Item");
+        Label sub   = dialogSub("Enter the details for the new inventory item.");
 
         TextField nameField  = styledField("Item name");
         TextField qtyField   = styledField("0");
         TextField priceField = styledField("0.00");
 
-        VBox form = new VBox(12,
+        VBox form = new VBox(14,
                 labeledField("Name *", nameField),
                 labeledField("Quantity", qtyField),
                 labeledField("Unit Price (₹)", priceField));
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err);
 
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Add Item");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
@@ -452,22 +399,17 @@ public final class Dialogs {
             if (onSaved != null) onSaved.accept(saved);
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Edit Inventory Item dialog ───────────────────────────────────────────
 
     public static void showEditItem(InventoryItem item, Consumer<InventoryItem> onSaved) {
-        Stage stage = buildDialogStage("Edit Item — " + item.getName(), 440, 360);
+        Stage stage = buildDialogStage("Edit Item — " + item.getName());
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Edit Item");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Update the details for \"" + item.getName() + "\".");
-        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Edit Item");
+        Label sub   = dialogSub("Update the details for \"" + item.getName() + "\".");
 
         TextField nameField  = styledField("Item name");
         nameField.setText(item.getName());
@@ -476,26 +418,19 @@ public final class Dialogs {
         TextField priceField = styledField("0.00");
         priceField.setText(String.valueOf(item.getUnitPrice()));
 
-        VBox form = new VBox(12,
+        VBox form = new VBox(14,
                 labeledField("Name *", nameField),
                 labeledField("Quantity", qtyField),
                 labeledField("Unit Price (₹)", priceField));
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err);
 
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Save Changes");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
@@ -525,27 +460,22 @@ public final class Dialogs {
             if (onSaved != null) onSaved.accept(updated);
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Stock Adjustment dialog ──────────────────────────────────────────────
 
     public static void showStockAdjust(List<InventoryItem> items, BiConsumer<Integer, Integer> onAdjust) {
-        Stage stage = buildDialogStage("Adjust Stock", 440, 320);
+        Stage stage = buildDialogStage("Adjust Stock");
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Stock Adjustment");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        Label sub = new Label("Select an item and enter the stock change amount.");
-        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Stock Adjustment");
+        Label sub   = dialogSub("Select an item and enter the stock change amount.");
 
         ComboBox<InventoryItem> itemCombo = new ComboBox<>();
         itemCombo.getItems().addAll(items);
         itemCombo.setPromptText("Select item…");
-        itemCombo.setPrefWidth(300);
+        itemCombo.setMaxWidth(Double.MAX_VALUE);
         itemCombo.getStyleClass().add("combo");
         itemCombo.setCellFactory(lv -> new ListCell<>() {
             @Override protected void updateItem(InventoryItem it, boolean empty) {
@@ -557,25 +487,18 @@ public final class Dialogs {
 
         TextField deltaField = styledField("e.g. +10 or -5");
 
-        VBox form = new VBox(12,
+        VBox form = new VBox(14,
                 labeledField("Item", itemCombo),
                 labeledField("Quantity Change (+/-)", deltaField));
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err);
 
         Button cancelBtn  = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button confirmBtn = new Button("Adjust Stock");
         confirmBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, confirmBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, confirmBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
@@ -594,39 +517,29 @@ public final class Dialogs {
             if (onAdjust != null) onAdjust.accept(selected.getId(), delta);
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Add Credit Info dialog ───────────────────────────────────────────────
 
     public static void showAddCreditInfo() {
-        Stage stage = buildDialogStage("Add New Credit", 480, 260);
-        stage.setResizable(false);
+        Stage stage = buildDialogStage("Add New Credit");
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(28));
-        root.getStyleClass().add("dialog-root");
-
-        Label title = new Label("Add New Credit");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Add New Credit");
         Label msg = new Label(
                 "Credits are created automatically when you record a payment on a customer's page.\n\n"
                 + "Navigate to Accounts → open a customer → Record Payment to add a credit entry.");
         msg.setWrapText(true);
-        msg.setStyle("-fx-text-fill: -text-muted;");
+        msg.getStyleClass().add("txn-meta");
+
+        content.getChildren().addAll(new VBox(8, title, msg), new Separator());
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button goBtn = new Button("Go to Customers Page");
         goBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, goBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(new VBox(4, title, msg), new Separator(), btns);
-
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, goBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         goBtn.setOnAction(e -> {
@@ -634,47 +547,31 @@ public final class Dialogs {
             App.getShell().navigate("accounts");
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── Edit Transaction dialog ──────────────────────────────────────────────
 
     public static void showEditTransaction(Transaction t, Runnable onSave) {
-        Stage stage = buildDialogStage("Edit Transaction", 520, 480);
-        stage.setResizable(false);
+        Stage stage = buildDialogStage("Edit Transaction");
 
-        ScrollPane scroll = new ScrollPane();
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setMaxHeight(600);
-        scroll.getStyleClass().add("scroll-pane");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Edit Transaction");
 
-        VBox root = new VBox(12);
-        root.setPadding(new Insets(24));
-        root.getStyleClass().add("dialog-root");
-        scroll.setContent(root);
-
-        Label title = new Label("Edit Transaction");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-
-        // Read-only info
-        VBox infoForm = new VBox(12,
+        VBox infoForm = new VBox(14,
                 labeledField("Description / Items", readonlyField(
                         t.getDescription() != null ? t.getDescription() : t.getType().name())),
                 labeledField("Original Total Amount (₹)", readonlyField(UiUtil.money(t.getAmount()))),
                 labeledField("Transaction Date", readonlyField(UiUtil.date(t.getDate()))),
                 labeledField("Current Balance (₹)", readonlyField(UiUtil.money(t.getBalance()))));
 
-        // Editable pay later amount
         TextField payLaterField = styledField("0");
         payLaterField.setText("0");
 
-        // Payment date picker
         DatePicker paymentDatePicker = new DatePicker(LocalDate.now());
         paymentDatePicker.getStyleClass().add("date-picker");
-        paymentDatePicker.setPrefWidth(300);
+        paymentDatePicker.setMaxWidth(Double.MAX_VALUE);
 
-        // Live remaining balance label
         Label remainingLabel = new Label(UiUtil.money(t.getBalance()));
         remainingLabel.setStyle("-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -success-600;");
 
@@ -691,7 +588,7 @@ public final class Dialogs {
 
         payLaterField.textProperty().addListener((obs, o, n) -> updateRemaining.run());
 
-        VBox editForm = new VBox(12,
+        VBox editForm = new VBox(14,
                 labeledField("Pay Later Amount (₹)", payLaterField),
                 labeledField("Payment Date", paymentDatePicker));
 
@@ -699,22 +596,15 @@ public final class Dialogs {
         remainingRow.setAlignment(Pos.CENTER_LEFT);
         remainingRow.setStyle("-fx-background-color: -surface-2; -fx-padding: 10 14; -fx-background-radius: 8;");
 
-        Label err = new Label();
-        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        Label err = errLabel();
+        content.getChildren().addAll(title, new Separator(), infoForm, new Separator(),
+                editForm, remainingRow, err);
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
         Button saveBtn = new Button("Save");
         saveBtn.getStyleClass().add("btn");
-
-        HBox btns = new HBox(12, cancelBtn, saveBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(title, new Separator(), infoForm, new Separator(),
-                editForm, remainingRow, err, btns);
-
-        Scene scene = buildScene(stage, scroll);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(cancelBtn, saveBtn);
 
         cancelBtn.setOnAction(e -> stage.close());
         saveBtn.setOnAction(e -> {
@@ -734,30 +624,18 @@ public final class Dialogs {
             if (onSave != null) onSave.run();
         });
 
-        stage.showAndWait();
+        presentDialog(stage, content, btnRow);
     }
 
     // ─── View Transaction dialog ──────────────────────────────────────────────
 
     public static void showViewTransaction(Transaction t) {
-        Stage stage = buildDialogStage("Transaction Details", 520, 400);
-        stage.setResizable(false);
+        Stage stage = buildDialogStage("Transaction Details");
 
-        ScrollPane scroll = new ScrollPane();
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setMaxHeight(600);
-        scroll.getStyleClass().add("scroll-pane");
+        VBox content = contentVBox();
+        Label title = dialogTitle("Transaction Details");
 
-        VBox root = new VBox(12);
-        root.setPadding(new Insets(24));
-        root.getStyleClass().add("dialog-root");
-        scroll.setContent(root);
-
-        Label title = new Label("Transaction Details");
-        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-
-        VBox form = new VBox(12,
+        VBox form = new VBox(14,
                 labeledField("Customer", readonlyField(t.getCustomerName() != null ? t.getCustomerName() : "—")),
                 labeledField("Type", readonlyField(t.getType().name())),
                 labeledField("Total Amount (₹)", readonlyField(UiUtil.money(t.getAmount()))),
@@ -768,43 +646,90 @@ public final class Dialogs {
                 labeledField("Description / Items", readonlyField(
                         t.getDescription() != null ? t.getDescription() : "—")));
 
+        content.getChildren().addAll(title, new Separator(), form);
+
         Button closeBtn = new Button("Close");
         closeBtn.getStyleClass().addAll("btn", "btn-secondary");
-
-        HBox btns = new HBox(closeBtn);
-        btns.setAlignment(Pos.CENTER_RIGHT);
-
-        root.getChildren().addAll(title, new Separator(), form, btns);
-
-        Scene scene = buildScene(stage, scroll);
-        stage.setScene(scene);
+        HBox btnRow = buttonRow(closeBtn);
 
         closeBtn.setOnAction(e -> stage.close());
 
+        presentDialog(stage, content, btnRow);
+    }
+
+    // ─── Layout helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Standard dialog pattern: scroll wraps content, buttons are outside scroll (always visible).
+     */
+    private static void presentDialog(Stage stage, VBox contentVBox, HBox buttonRow) {
+        contentVBox.setPrefWidth(520);
+
+        ScrollPane scroll = new ScrollPane(contentVBox);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setMaxHeight(560);
+        scroll.getStyleClass().add("scroll-pane");
+
+        VBox outer = new VBox(scroll, buttonRow);
+        outer.getStyleClass().add("dialog-root");
+
+        Scene scene = new Scene(outer);
+        ThemeManager.register(scene);
+        ThemeManager.apply(scene);
+        stage.setOnHidden(e -> ThemeManager.unregister(scene));
+        stage.setScene(scene);
+        stage.sizeToScene();
         stage.showAndWait();
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-
-    private static Stage buildDialogStage(String title, double width, double height) {
+    private static Stage buildDialogStage(String title) {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initOwner(App.getScene().getWindow());
         stage.setTitle(title);
-        stage.setWidth(width);
-        stage.setMinWidth(width);
-        stage.setMinHeight(height);
-        stage.setResizable(false);
+        stage.setMinWidth(520);
+        stage.setMaxWidth(720);
+        stage.setResizable(true);
         return stage;
     }
 
-    private static Scene buildScene(Stage stage, javafx.scene.Parent content) {
-        Scene scene = new Scene(content, stage.getMinWidth(), stage.getMinHeight());
-        ThemeManager.register(scene);
-        ThemeManager.apply(scene);
-        stage.setOnHidden(e -> ThemeManager.unregister(scene));
-        return scene;
+    private static VBox contentVBox() {
+        VBox box = new VBox(16);
+        box.setPadding(new Insets(24, 28, 16, 28));
+        box.getStyleClass().add("dialog-root");
+        return box;
     }
+
+    private static HBox buttonRow(Button... buttons) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_RIGHT);
+        row.setPadding(new Insets(8, 28, 16, 28));
+        row.getChildren().addAll(buttons);
+        return row;
+    }
+
+    private static Label dialogTitle(String text) {
+        Label lbl = new Label(text);
+        lbl.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        return lbl;
+    }
+
+    private static Label dialogSub(String text) {
+        Label lbl = new Label(text);
+        lbl.getStyleClass().add("txn-meta");
+        lbl.setWrapText(true);
+        return lbl;
+    }
+
+    private static Label errLabel() {
+        Label lbl = new Label();
+        lbl.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+        return lbl;
+    }
+
+    // ─── Theme helpers ────────────────────────────────────────────────────────
 
     private static void applyThemeOnShow(Alert alert) {
         alert.setOnShowing(e -> {
@@ -820,6 +745,8 @@ public final class Dialogs {
         });
     }
 
+    // ─── Field helpers ────────────────────────────────────────────────────────
+
     private static VBox labeledField(String labelText, javafx.scene.Node field) {
         Label lbl = new Label(labelText);
         lbl.setStyle("-fx-font-size:12px; -fx-text-fill: -text-muted;");
@@ -831,6 +758,7 @@ public final class Dialogs {
         TextField f = new TextField();
         f.setPromptText(prompt);
         f.getStyleClass().add("field");
+        f.setMaxWidth(Double.MAX_VALUE);
         f.setPrefWidth(300);
         return f;
     }

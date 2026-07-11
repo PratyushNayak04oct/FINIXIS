@@ -97,7 +97,9 @@ public class InventoryController implements Initializable, PageController {
             @Override protected void updateItem(InventoryItem item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setGraphic(null); return; }
-                HBox box = new HBox(4, editBtn, delBtn);
+                HBox box = new HBox(10, editBtn, delBtn);
+                box.setAlignment(javafx.geometry.Pos.CENTER);
+                box.setPadding(new javafx.geometry.Insets(6, 8, 6, 8));
                 setGraphic(box);
             }
         });

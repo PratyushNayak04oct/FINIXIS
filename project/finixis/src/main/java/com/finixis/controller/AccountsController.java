@@ -64,12 +64,18 @@ public class AccountsController implements Initializable, PageController {
             private final Button openBtn = new Button("Open");
             {
                 openBtn.getStyleClass().addAll("btn", "btn-secondary");
+                openBtn.setPadding(new javafx.geometry.Insets(6, 12, 6, 12));
+                openBtn.setMinWidth(80);
                 openBtn.setOnAction(e -> App.getShell().openCustomer(
                         getTableView().getItems().get(getIndex()).getId()));
             }
             @Override protected void updateItem(Customer c, boolean empty) {
                 super.updateItem(c, empty);
-                setGraphic(empty || c == null ? null : openBtn);
+                if (empty || c == null) { setGraphic(null); return; }
+                javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(openBtn);
+                box.setAlignment(javafx.geometry.Pos.CENTER);
+                box.setPadding(new javafx.geometry.Insets(6, 8, 6, 8));
+                setGraphic(box);
             }
         });
 

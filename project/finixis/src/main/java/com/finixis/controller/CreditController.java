@@ -96,6 +96,7 @@ public class CreditController implements Initializable, PageController {
             private final Button openBtn   = new Button("View");
             {
                 settleBtn.getStyleClass().addAll("btn", "btn-secondary");
+                settleBtn.setMinWidth(80);
                 settleBtn.setOnAction(e -> {
                     Credit c = getTableView().getItems().get(getIndex());
                     if (!c.isSettled()) {
@@ -134,10 +135,12 @@ public class CreditController implements Initializable, PageController {
                 if (empty || c == null) { setGraphic(null); return; }
                 HBox box;
                 if (!c.isSettled()) {
-                    box = new HBox(4, settleBtn, editBtn, openBtn);
+                    box = new HBox(10, settleBtn, editBtn, openBtn);
                 } else {
-                    box = new HBox(4, editBtn, openBtn);
+                    box = new HBox(10, editBtn, openBtn);
                 }
+                box.setAlignment(javafx.geometry.Pos.CENTER);
+                box.setPadding(new javafx.geometry.Insets(6, 8, 6, 8));
                 setGraphic(box);
             }
         });

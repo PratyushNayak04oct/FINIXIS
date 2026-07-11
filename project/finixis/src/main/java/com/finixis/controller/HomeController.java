@@ -1,5 +1,13 @@
 package com.finixis.controller;
 
+import java.net.URL;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.ResourceBundle;
+
+import org.kordamp.ikonli.javafx.FontIcon;
+
 import com.finixis.App;
 import com.finixis.model.Transaction;
 import com.finixis.service.AppServices;
@@ -7,6 +15,7 @@ import com.finixis.service.CustomerService;
 import com.finixis.service.InventoryService;
 import com.finixis.service.TransactionService;
 import com.finixis.viewmodel.UiUtil;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
@@ -16,13 +25,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import org.kordamp.ikonli.javafx.FontIcon;
-
-import java.net.URL;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.ResourceBundle;
 
 public class HomeController implements Initializable, PageController {
 
@@ -41,6 +43,8 @@ public class HomeController implements Initializable, PageController {
         double creditTotal = transactions.totalCreditOutstanding();
         long   creditCount = transactions.getAllCredits().stream().filter(Transaction::isOngoing).count();
         pendingCredits.setText(UiUtil.money(creditTotal));
+        pendingCredits.getStyleClass().remove("stat-negative");
+        pendingCredits.getStyleClass().add("text-success");
         pendingCreditsCount.setText(creditCount + " open");
 
         double debitTotal = transactions.totalDebits();
@@ -82,10 +86,14 @@ public class HomeController implements Initializable, PageController {
         // Left VBox: name + type
         VBox left = new VBox(2);
         Label nameLabel = new Label(t.getCustomerName() != null ? t.getCustomerName() : "—");
-        nameLabel.getStyleClass().addAll("txn-desc");
-        Label typeMeta = new Label(t.getType().name() + "  ·  " + UiUtil.money(t.getAmount()));
+        nameLabel.getStyleClass().add("txn-desc");
+        Label typeMeta = new Label(t.getType().name());
         typeMeta.getStyleClass().add("txn-meta");
-        left.getChildren().addAll(nameLabel, typeMeta);
+        Label amountLabel = new Label(UiUtil.money(t.getAmount()));
+        amountLabel.getStyleClass().addAll("txn-meta", isCredit ? "text-success" : "text-error");
+        HBox typeRow = new HBox(6, typeMeta, amountLabel);
+        typeRow.setAlignment(Pos.CENTER_LEFT);
+        left.getChildren().addAll(nameLabel, typeRow);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
