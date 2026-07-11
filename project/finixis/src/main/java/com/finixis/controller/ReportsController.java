@@ -30,6 +30,8 @@ import java.util.ResourceBundle;
 public class ReportsController implements Initializable, PageController {
 
     @FXML private ComboBox<String> rangeCombo;
+    @FXML private ComboBox<String> invoiceFormatCombo;
+    @FXML private TextField companyNameField;
     @FXML private Label totalCredits, totalDebits, netLabel;
     @FXML private BarChart<String, Number> chart;
     @FXML private VBox filesBox;
@@ -44,6 +46,11 @@ public class ReportsController implements Initializable, PageController {
 
         rangeCombo.getItems().addAll("Last 30 days", "Last 90 days", "This Year");
         rangeCombo.getSelectionModel().select("Last 90 days");
+
+        if (invoiceFormatCombo != null) {
+            invoiceFormatCombo.getItems().addAll("PDF (A4)", "PDF (Letter)");
+            invoiceFormatCombo.getSelectionModel().select(0);
+        }
 
         // Summary stats from DB
         double credits  = txnService.getAllCredits().stream().mapToDouble(Transaction::getAmount).sum();
@@ -156,5 +163,6 @@ public class ReportsController implements Initializable, PageController {
             Dialogs.info("Could Not Open File", "Error: " + ex.getMessage()
                     + "\n\nFile is at:\n" + file.getAbsolutePath());
         }
+        Dialogs.showFileDownloadedDialog(file);
     }
 }

@@ -12,6 +12,7 @@
         <FontIcon iconLiteral="fas-bars" styleClass="topbar-icon" onMouseClicked="#toggleMenu"/>
         <Label text="Finixis" styleClass="brand"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="themeToggleBtn" onAction="#onToggleTheme" styleClass="btn,btn-secondary,icon-btn" prefWidth="110"/>
         <Button text="Account" styleClass="nav-btn" onAction="#goAccount">
             <graphic><FontIcon iconLiteral="fas-user-circle"/></graphic>
         </Button>

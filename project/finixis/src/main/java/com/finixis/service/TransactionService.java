@@ -71,6 +71,14 @@ public class TransactionService {
     /** Mark a credit transaction as fully settled. */
     public void markSettled(int transactionId) { repo.markSettled(transactionId); }
 
+    /**
+     * Record a partial payment on an existing credit transaction.
+     * Updates paid_amount and balance; auto-settles if balance reaches zero.
+     */
+    public void recordPartialPayment(int transactionId, double amount, LocalDate date) {
+        repo.partialPayment(transactionId, amount, date);
+    }
+
     // ---- Summary stats ----
 
     public double totalCreditOutstanding() {

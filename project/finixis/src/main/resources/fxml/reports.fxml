@@ -20,6 +20,22 @@
             <ComboBox fx:id="rangeCombo" styleClass="combo"/>
         </HBox>
 
+        <!-- Invoice Settings -->
+        <VBox styleClass="card,card-pad" spacing="12">
+            <Label text="INVOICE SETTINGS" styleClass="card-title"/>
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Invoice Format" styleClass="form-label"/>
+                    <ComboBox fx:id="invoiceFormatCombo" prefWidth="200" styleClass="combo"/>
+                </VBox>
+                <VBox spacing="4">
+                    <Label text="Company Name (shown on invoice)" styleClass="form-label"/>
+                    <TextField fx:id="companyNameField" promptText="Finixis" prefWidth="240" styleClass="field"/>
+                </VBox>
+            </HBox>
+            <Label text="Invoice format is PDF. Invoices are generated per-transaction from the Transaction History or Customer Detail pages." styleClass="txn-meta"/>
+        </VBox>
+
         <!-- Summary stat cards -->
         <HBox spacing="16">
             <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">

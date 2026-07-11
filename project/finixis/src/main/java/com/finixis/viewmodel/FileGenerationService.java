@@ -86,6 +86,152 @@ public final class FileGenerationService {
         );
     }
 
+    /**
+     * Generate a per-transaction PDF invoice and return a GeneratedFile.
+     * Overload that accepts only a Transaction (customer name from transaction).
+     */
+    public static GeneratedFile generateInvoiceForTransaction(Transaction t) throws IOException {
+        return generateInvoiceForTransaction(t, null);
+    }
+
+    /**
+     * Generate a per-transaction PDF invoice for the given transaction and customer.
+     * Saves to ~/Downloads/Finixis/Invoice-{transactionId}.pdf
+     */
+    public static GeneratedFile generateInvoiceForTransaction(Transaction t,
+            com.finixis.model.Customer customer) throws IOException {
+        File dir = outputDir();
+        String invoiceNum = "INV-" + t.getId();
+        String customerName = (customer != null && customer.getName() != null)
+                ? customer.getName()
+                : (t.getCustomerName() != null ? t.getCustomerName() : "Unknown");
+        String dateStr = t.getDate().format(DateTimeFormatter.ofPattern("MMM d, yyyy"));
+        String generatedStr = LocalDateTime.now().format(FULL);
+
+        File outFile = new File(dir, "Invoice-" + t.getId() + ".pdf");
+        writeInvoicePdf(invoiceNum, customerName, dateStr, generatedStr, t, outFile);
+
+        String name = "Invoice " + invoiceNum + " – " + customerName;
+        return new GeneratedFile(++seq, name, "Invoice", "PDF", LocalDateTime.now(), outFile);
+    }
+
+    private static void writeInvoicePdf(String invoiceNum, String customerName,
+            String dateStr, String generatedStr, Transaction t, File outFile) throws IOException {
+        int pageW = 612, leftMargin = 50, rightMargin = 50;
+        int contentW = pageW - leftMargin - rightMargin;
+
+        StringBuilder cs = new StringBuilder();
+        cs.append("BT\n");
+
+        // Header: FINIXIS (top-left, bold large)
+        cs.append("/F1 22 Tf 1 0 0 1 ").append(leftMargin).append(" 740 Tm (FINIXIS) Tj\n");
+        // INVOICE (top-right, bold large)
+        cs.append("/F1 18 Tf 1 0 0 1 460 740 Tm (INVOICE) Tj\n");
+        cs.append("ET\n");
+
+        // Horizontal rule under header
+        cs.append("q 0.4 0.4 0.7 RG ").append(leftMargin).append(" 728 ").append(contentW).append(" 1.5 re f Q\n");
+
+        cs.append("BT\n");
+        // Invoice # and date
+        cs.append("/F1 10 Tf 1 0 0 1 ").append(leftMargin).append(" 710 Tm (Invoice #: ")
+          .append(pdfEsc(invoiceNum)).append(") Tj\n");
+        cs.append("/F2 10 Tf 1 0 0 1 ").append(leftMargin).append(" 694 Tm (Date: ")
+          .append(pdfEsc(dateStr)).append(") Tj\n");
+
+        // Bill To section
+        cs.append("/F1 11 Tf 1 0 0 1 ").append(leftMargin).append(" 668 Tm (BILL TO:) Tj\n");
+        cs.append("/F2 11 Tf 1 0 0 1 ").append(leftMargin).append(" 652 Tm (")
+          .append(pdfEsc(customerName)).append(") Tj\n");
+
+        cs.append("ET\n");
+
+        // Line separator
+        cs.append("q 0.75 0.75 0.75 RG ").append(leftMargin).append(" 638 ").append(contentW).append(" 0.8 re f Q\n");
+
+        // Table header
+        cs.append("BT /F1 10 Tf\n");
+        cs.append("1 0 0 1 ").append(leftMargin).append(" 622 Tm (Description) Tj\n");
+        cs.append("1 0 0 1 350 622 Tm (Amount) Tj\n");
+        cs.append("1 0 0 1 430 622 Tm (Paid) Tj\n");
+        cs.append("1 0 0 1 500 622 Tm (Balance) Tj\n");
+        cs.append("ET\n");
+
+        cs.append("q 0.85 0.85 0.85 RG ").append(leftMargin).append(" 610 ").append(contentW).append(" 0.5 re f Q\n");
+
+        // Data row
+        String descText = t.getDescription() != null && !t.getDescription().isBlank()
+                ? t.getDescription() : t.getType().name();
+        cs.append("BT /F2 10 Tf\n");
+        cs.append("1 0 0 1 ").append(leftMargin).append(" 595 Tm (").append(pdfEsc(truncate(descText, 30))).append(") Tj\n");
+        cs.append("1 0 0 1 350 595 Tm (").append(pdfEsc(String.format("%.2f", t.getAmount()))).append(") Tj\n");
+        cs.append("1 0 0 1 430 595 Tm (").append(pdfEsc(String.format("%.2f", t.getPaidAmount()))).append(") Tj\n");
+        cs.append("1 0 0 1 500 595 Tm (").append(pdfEsc(String.format("%.2f", t.getBalance()))).append(") Tj\n");
+        cs.append("ET\n");
+
+        // Summary box
+        cs.append("q 0.95 0.95 0.98 rg 350 555 210 55 re f Q\n");
+        cs.append("BT /F1 10 Tf\n");
+        cs.append("1 0 0 1 360 598 Tm (Subtotal:) Tj\n");
+        cs.append("1 0 0 1 460 598 Tm (").append(pdfEsc(String.format("%.2f", t.getAmount()))).append(") Tj\n");
+        cs.append("1 0 0 1 360 582 Tm (Amount Paid:) Tj\n");
+        cs.append("1 0 0 1 460 582 Tm (").append(pdfEsc(String.format("%.2f", t.getPaidAmount()))).append(") Tj\n");
+        cs.append("/F1 11 Tf 1 0 0 1 360 562 Tm (Balance Due:) Tj\n");
+        cs.append("1 0 0 1 460 562 Tm (").append(pdfEsc(String.format("%.2f", t.getBalance()))).append(") Tj\n");
+        cs.append("ET\n");
+
+        // Status
+        String statusText = t.isOngoing() ? "PENDING" : "PAID / ALL CLEARED";
+        cs.append("BT /F1 12 Tf 1 0 0 1 ").append(leftMargin).append(" 562 Tm (Status: ")
+          .append(pdfEsc(statusText)).append(") Tj ET\n");
+
+        // Footer rule
+        cs.append("q 0.4 0.4 0.7 RG ").append(leftMargin).append(" 80 ").append(contentW).append(" 1 re f Q\n");
+
+        // Footer text
+        cs.append("BT /F2 9 Tf\n");
+        cs.append("1 0 0 1 ").append(leftMargin).append(" 65 Tm (Thank you for your business.) Tj\n");
+        cs.append("1 0 0 1 ").append(leftMargin).append(" 50 Tm (Generated by Finixis  |  ")
+          .append(pdfEsc(generatedStr)).append(") Tj\n");
+        cs.append("ET\n");
+
+        byte[] csBytes = cs.toString().getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+
+        List<byte[]> objs = new ArrayList<>();
+        objs.add(pdf("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
+        objs.add(pdf("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
+        objs.add(pdf("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]"
+                + " /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n"));
+        objs.add(pdfStream(csBytes, 4));
+        objs.add(pdf("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold"
+                + " /Encoding /WinAnsiEncoding >>\nendobj\n"));
+        objs.add(pdf("6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica"
+                + " /Encoding /WinAnsiEncoding >>\nendobj\n"));
+
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        byte[] hdr = ("%PDF-1.4\n%" + "\u00e2\u00e3\u00cf\u00d3" + "\n")
+                .getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        out.write(hdr);
+        int offset = hdr.length;
+        List<Integer> xrefOffsets = new ArrayList<>();
+        for (byte[] obj : objs) {
+            xrefOffsets.add(offset);
+            out.write(obj);
+            offset += obj.length;
+        }
+        int xrefStart = offset;
+        StringBuilder xref = new StringBuilder("xref\n0 ").append(objs.size() + 1).append("\n");
+        xref.append("0000000000 65535 f \n");
+        for (int off : xrefOffsets) xref.append(String.format("%010d 00000 n \n", off));
+        byte[] xrefBytes = xref.toString().getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        out.write(xrefBytes);
+        String trailer = "trailer\n<< /Size " + (objs.size() + 1) + " /Root 1 0 R >>\n"
+                + "startxref\n" + xrefStart + "\n%%EOF\n";
+        out.write(trailer.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
+
+        Files.write(outFile.toPath(), out.toByteArray());
+    }
+
     public static List<GeneratedFile> exportTransactions(List<Transaction> transactions) throws IOException {
         String ts = LocalDateTime.now().format(TS);
         String name = "Transaction Export – " + LocalDateTime.now().format(DISP);

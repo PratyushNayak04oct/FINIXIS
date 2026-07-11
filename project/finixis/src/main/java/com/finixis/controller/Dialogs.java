@@ -16,6 +16,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,13 +25,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Central place for all dialogs. Every dialog registers its Scene with ThemeManager
- * so the live theme toggle applies to open dialogs correctly.
+ * Central place for all dialogs. Each dialog registers its Scene with ThemeManager so
+ * the live theme toggle applies to open dialogs correctly.
  */
 public final class Dialogs {
     private Dialogs() {}
 
-    // ─── Generic / system dialogs ──────────────────────────────────────────────
+    // ─── Generic / system dialogs ─────────────────────────────────────────────
 
     public static boolean confirm(String title, String header, String message) {
         Alert a = new Alert(Alert.AlertType.CONFIRMATION);
@@ -56,77 +58,116 @@ public final class Dialogs {
         if (ok) UiUtil.toast(root, "Signed out (simulated)");
     }
 
+    public static void showFileDownloadedDialog(File file) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("File Downloaded");
+        alert.setHeaderText("File saved successfully");
+        alert.setContentText("Your file has been saved to:\n\n"
+                + (file != null ? file.getAbsolutePath() : "Unknown location")
+                + "\n\nClick Close to dismiss.");
+        alert.getButtonTypes().setAll(ButtonType.CLOSE);
+        applyThemeOnShow(alert);
+        alert.showAndWait();
+    }
+
+    public static void markSettled(String what) {
+        boolean ok = confirm("Mark as Settled", "Mark this " + what + " as settled?",
+                "Settled items will no longer appear as pending.");
+        if (ok) UiUtil.toast(App.getRoot(), what + " marked as settled");
+    }
+
     // ─── Add Customer dialog ──────────────────────────────────────────────────
 
     public static void showAddCustomer(Consumer<Customer> onSaved) {
-        Stage stage = buildDialogStage("Add New Customer", 480, 420);
-        VBox root = dialogRoot();
+        Stage stage = buildDialogStage("Add Customer", 460, 400);
 
-        Label title = sectionTitle("Add New Customer");
-        TextField nameField    = styledField("Full name");
-        TextField phoneField   = styledField("+91-XXXXXXXXXX");
-        TextField emailField   = styledField("email@example.com");
-        TextField addressField = styledField("City / Address");
-        Label err = errLabel();
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
 
-        Button cancelBtn  = new Button("Cancel");  cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Add Customer"); confirmBtn.getStyleClass().add("btn");
+        Label title = new Label("Add Customer");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Enter the new customer's details below.");
+        sub.setStyle("-fx-text-fill: -text-muted;");
 
-        root.getChildren().addAll(
-                title, new Separator(),
-                labeledField("Customer Name *", nameField),
+        TextField nameField  = styledField("Full name");
+        TextField phoneField = styledField("Phone number");
+        TextField emailField = styledField("Email address");
+        TextField addrField  = styledField("Address");
+
+        VBox form = new VBox(12,
+                labeledField("Name *", nameField),
                 labeledField("Phone", phoneField),
                 labeledField("Email", emailField),
-                labeledField("Location", addressField),
-                err,
-                actionBar(cancelBtn, confirmBtn));
+                labeledField("Address", addrField));
+
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Add Customer");
+        confirmBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
 
         Scene scene = buildScene(stage, root);
         stage.setScene(scene);
+
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
             String name = nameField.getText().trim();
-            if (name.isEmpty()) { err.setText("Customer name is required."); return; }
-            try {
-                Customer saved = AppServices.customers().addCustomer(
-                        name, phoneField.getText().trim(),
-                        emailField.getText().trim(), addressField.getText().trim());
-                stage.close();
-                if (onSaved != null) onSaved.accept(saved);
-            } catch (Exception ex) {
-                err.setText("Error: " + ex.getMessage());
-            }
+            if (name.isEmpty()) { err.setText("Name is required."); return; }
+            Customer saved = AppServices.customers().addCustomer(
+                    name,
+                    phoneField.getText().trim(),
+                    emailField.getText().trim(),
+                    addrField.getText().trim());
+            stage.close();
+            if (onSaved != null) onSaved.accept(saved);
         });
+
         stage.showAndWait();
     }
 
-    // ─── Add Debit dialog ──────────────────────────────────────────────────────
+    // ─── Add Debit dialog ────────────────────────────────────────────────────
 
     public static void showAddDebit(Customer customer, Runnable onConfirm) {
-        Stage stage = buildDialogStage("Add Debit — " + customer.getName(), 460, 320);
-        VBox root = dialogRoot();
+        Stage stage = buildDialogStage("Add Debit — " + customer.getName(), 460, 340);
 
-        Label title = sectionTitle("Add Debit");
-        Label sub   = new Label("Record an amount owed TO " + customer.getName());
-        sub.getStyleClass().add("text-muted");
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
 
+        Label title = new Label("Add Debit");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Record an amount owed to " + customer.getName());
+        sub.setStyle("-fx-text-fill: -text-muted;");
+        VBox header = new VBox(4, title, sub);
+
+        VBox nameRow   = labeledField("Customer Name", readonlyField(customer.getName()));
         TextField amountField = styledField("0.00");
-        TextField notesField  = styledField("Optional notes");
-        Label err = errLabel();
+        VBox amountRow = labeledField("Amount (₹)", amountField);
 
-        Button cancelBtn  = new Button("Cancel");        cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Confirm Debit"); confirmBtn.getStyleClass().add("btn");
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
 
-        root.getChildren().addAll(
-                new VBox(4, title, sub), new Separator(),
-                labeledField("Customer Name", readonlyField(customer.getName())),
-                labeledField("Amount (₹) *", amountField),
-                labeledField("Notes", notesField),
-                err,
-                actionBar(cancelBtn, confirmBtn));
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Confirm Debit");
+        confirmBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(header, new Separator(), nameRow, amountRow, err, btns);
 
         Scene scene = buildScene(stage, root);
         stage.setScene(scene);
+
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
             double amount;
@@ -137,51 +178,51 @@ public final class Dialogs {
                 err.setText("Please enter a valid positive amount.");
                 return;
             }
-            try {
-                AppServices.transactions().addDebit(
-                        customer.getId(), customer.getName(),
-                        amount, notesField.getText().trim());
-                stage.close();
-                if (onConfirm != null) onConfirm.run();
-            } catch (Exception ex) {
-                err.setText("Error saving: " + ex.getMessage());
-            }
+            AppServices.transactions().addDebit(
+                    customer.getId(), customer.getName(), amount, "Debit added manually");
+            stage.close();
+            if (onConfirm != null) onConfirm.run();
         });
+
         stage.showAndWait();
     }
 
-    // ─── Record Payment dialog ─────────────────────────────────────────────────
+    // ─── Record Payment dialog ────────────────────────────────────────────────
 
     public static void showRecordPayment(Customer customer, Runnable onConfirm) {
-        Stage stage = buildDialogStage("Record Payment — " + customer.getName(), 600, 560);
+        Stage stage = buildDialogStage("Record Payment — " + customer.getName(), 580, 540);
 
         ScrollPane scroll = new ScrollPane();
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("scroll-pane");
 
-        VBox root = dialogRoot();
+        VBox root = new VBox(18);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
         scroll.setContent(root);
 
-        Label title = sectionTitle("Record Payment");
-        Label sub   = new Label("Customer: " + customer.getName() + "  ·  Select items and enter amount paid.");
-        sub.getStyleClass().add("text-muted");
-
-        List<InventoryItem> inventory = AppServices.inventory().getAll();
+        Label title = new Label("Record Payment");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Customer: " + customer.getName() + "  ·  Select items and enter amount paid.");
+        sub.setStyle("-fx-text-fill: -text-muted;");
 
         VBox itemsBox = new VBox(10);
+        List<InventoryItem> inventory = AppServices.inventory().getAll();
+
         Label totalAmountLabel = new Label("₹0.00");
-        totalAmountLabel.getStyleClass().addAll("font-bold", "text-primary");
-        totalAmountLabel.setStyle("-fx-font-size:16px;");
+        totalAmountLabel.setStyle("-fx-font-weight:700; -fx-font-size:16px; -fx-text-fill: -primary-600;");
 
         TextField paidField = styledField("0.00");
+
         Label remainingLabel = new Label("₹0.00");
-        remainingLabel.getStyleClass().add("font-bold");
-        remainingLabel.setStyle("-fx-font-size:14px;");
-        Label err = errLabel();
+        remainingLabel.setStyle("-fx-font-weight:700; -fx-font-size:14px;");
+
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
 
         List<ComboBox<InventoryItem>> itemCombos = new ArrayList<>();
-        List<TextField>              qtyFields   = new ArrayList<>();
+        List<TextField> qtyFields = new ArrayList<>();
 
         Runnable updateTotals = () -> {
             double total = 0;
@@ -200,8 +241,9 @@ public final class Dialogs {
             try { paid = Double.parseDouble(paidField.getText().trim()); } catch (Exception ignored) {}
             double remaining = t - paid;
             remainingLabel.setText(UiUtil.money(remaining));
-            remainingLabel.getStyleClass().removeAll("text-error", "text-success");
-            remainingLabel.getStyleClass().add(remaining > 0 ? "text-error" : "text-success");
+            remainingLabel.setStyle(remaining > 0
+                    ? "-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -error-600;"
+                    : "-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -success-600;");
         };
 
         Runnable[] addRowRef = new Runnable[1];
@@ -209,7 +251,7 @@ public final class Dialogs {
             ComboBox<InventoryItem> combo = new ComboBox<>();
             combo.getItems().addAll(inventory);
             combo.setPromptText("Select item…");
-            combo.setPrefWidth(260);
+            combo.setPrefWidth(220);
             combo.getStyleClass().add("combo");
             combo.setCellFactory(lv -> new ListCell<>() {
                 @Override protected void updateItem(InventoryItem item, boolean empty) {
@@ -219,17 +261,39 @@ public final class Dialogs {
                 }
             });
             combo.setButtonCell(combo.getCellFactory().call(null));
-            combo.valueProperty().addListener((obs, o, n) -> updateTotals.run());
 
-            TextField qtyField = styledField("1");
-            qtyField.setPrefWidth(80);
-            qtyField.textProperty().addListener((obs, o, n) -> updateTotals.run());
+            TextField qtyField = styledField("0");
+            qtyField.setText("0");
+            qtyField.setPrefWidth(70);
+
+            // Availability label updates live
+            Label availLabel = new Label();
+            availLabel.setStyle("-fx-font-size:11px;");
+
+            Runnable updateAvail = () -> {
+                InventoryItem sel = combo.getValue();
+                if (sel == null) { availLabel.setText(""); return; }
+                InventoryItem fresh = AppServices.inventory().getById(sel.getId()).orElse(sel);
+                int avail = fresh.getQuantity();
+                int reqQty = 0;
+                try { reqQty = Integer.parseInt(qtyField.getText().trim()); } catch (NumberFormatException ignored) {}
+                if (reqQty > avail) {
+                    availLabel.setText("Out of Stock (" + avail + " left)");
+                    availLabel.setStyle("-fx-font-size:11px; -fx-text-fill: -error-600;");
+                } else {
+                    availLabel.setText("Available: " + avail + " units");
+                    availLabel.setStyle("-fx-font-size:11px; -fx-text-fill: -success-600;");
+                }
+            };
+
+            combo.valueProperty().addListener((obs, o, n) -> { updateAvail.run(); updateTotals.run(); });
+            qtyField.textProperty().addListener((obs, o, n) -> { updateAvail.run(); updateTotals.run(); });
 
             Button removeBtn = new Button("✕");
             removeBtn.getStyleClass().addAll("btn", "btn-secondary");
             removeBtn.setStyle("-fx-padding: 4 8;");
 
-            HBox row = new HBox(10, combo, new Label("Qty:"), qtyField, removeBtn);
+            HBox row = new HBox(8, combo, new Label("Qty:"), qtyField, availLabel, removeBtn);
             row.setAlignment(Pos.CENTER_LEFT);
 
             itemCombos.add(combo);
@@ -246,11 +310,13 @@ public final class Dialogs {
                 }
             });
         };
+
         addRowRef[0].run();
 
         Button addMoreBtn = new Button("+ Add another item");
         addMoreBtn.getStyleClass().addAll("btn", "btn-ghost");
         addMoreBtn.setOnAction(e -> { addRowRef[0].run(); updateTotals.run(); });
+
         paidField.textProperty().addListener((obs, o, n) -> updateTotals.run());
 
         Label itemsLabel = new Label("ITEMS");
@@ -260,25 +326,35 @@ public final class Dialogs {
         totalRow.setAlignment(Pos.CENTER_LEFT);
         totalRow.setStyle("-fx-background-color: -surface-2; -fx-padding: 10 14; -fx-background-radius: 8;");
 
+        VBox paidRow = labeledField("Paid Amount (₹)", paidField);
+
         HBox remainingRow = new HBox(12, new Label("Remaining Amount:"), remainingLabel);
         remainingRow.setAlignment(Pos.CENTER_LEFT);
         remainingRow.setStyle("-fx-background-color: -surface-2; -fx-padding: 10 14; -fx-background-radius: 8;");
 
-        Button cancelBtn  = new Button("Cancel");           cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Confirm Payment");  confirmBtn.getStyleClass().add("btn");
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Confirm Payment");
+        confirmBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
 
         root.getChildren().addAll(
                 new VBox(4, title, sub), new Separator(),
-                itemsLabel, itemsBox, addMoreBtn, new Separator(),
-                totalRow, labeledField("Paid Amount (₹)", paidField), remainingRow,
-                err, actionBar(cancelBtn, confirmBtn));
+                itemsLabel, itemsBox, addMoreBtn,
+                new Separator(),
+                totalRow, paidRow, remainingRow,
+                err, btns);
 
         Scene scene = buildScene(stage, scroll);
         stage.setScene(scene);
+
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
             boolean hasItem = itemCombos.stream().anyMatch(c -> c.getValue() != null);
             if (!hasItem) { err.setText("Please select at least one item."); return; }
+
             double paid;
             try {
                 paid = Double.parseDouble(paidField.getText().trim());
@@ -289,187 +365,436 @@ public final class Dialogs {
             }
 
             List<TransactionLineItem> lineItems = new ArrayList<>();
+            StringBuilder desc = new StringBuilder();
             for (int i = 0; i < itemCombos.size(); i++) {
                 InventoryItem item = itemCombos.get(i).getValue();
                 if (item != null) {
                     int qty = 1;
                     try { qty = Math.max(1, Integer.parseInt(qtyFields.get(i).getText().trim())); }
                     catch (NumberFormatException ignored) {}
-                    lineItems.add(new TransactionLineItem(item.getId(), item.getName(), qty, item.getUnitPrice()));
+                    lineItems.add(new TransactionLineItem(
+                            item.getId(), item.getName(), qty, item.getUnitPrice()));
+                    if (!desc.isEmpty()) desc.append(", ");
+                    desc.append(qty).append("x ").append(item.getName());
                 }
             }
 
-            try {
-                Transaction tx = AppServices.transactions().recordPayment(
-                        customer.getId(), customer.getName(), lineItems, paid, null);
-                // Adjust stock: reduce available quantity for each item
-                for (TransactionLineItem li : lineItems) {
-                    AppServices.inventory().adjustStock(li.getItemId(), -li.getQuantity());
-                }
-                stage.close();
-                if (onConfirm != null) onConfirm.run();
-            } catch (Exception ex) {
-                err.setText("Error saving: " + ex.getMessage());
-            }
+            AppServices.transactions().recordPayment(
+                    customer.getId(), customer.getName(), lineItems, paid, "Payment: " + desc);
+            stage.close();
+            if (onConfirm != null) onConfirm.run();
         });
+
         stage.showAndWait();
     }
 
-    // ─── Add Inventory Item dialog ─────────────────────────────────────────────
+    // ─── Add Inventory Item dialog ────────────────────────────────────────────
 
     public static void showAddItem(Consumer<InventoryItem> onSaved) {
-        Stage stage = buildDialogStage("Add New Item", 440, 360);
-        VBox root = dialogRoot();
+        Stage stage = buildDialogStage("Add Inventory Item", 440, 360);
 
-        Label title = sectionTitle("Add New Inventory Item");
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
+
+        Label title = new Label("Add Item");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Enter the details for the new inventory item.");
+        sub.setStyle("-fx-text-fill: -text-muted;");
+
         TextField nameField  = styledField("Item name");
         TextField qtyField   = styledField("0");
         TextField priceField = styledField("0.00");
-        Label err = errLabel();
 
-        Button cancelBtn  = new Button("Cancel");   cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Add Item");  confirmBtn.getStyleClass().add("btn");
+        VBox form = new VBox(12,
+                labeledField("Name *", nameField),
+                labeledField("Quantity", qtyField),
+                labeledField("Unit Price (₹)", priceField));
 
-        root.getChildren().addAll(
-                title, new Separator(),
-                labeledField("Item Name *", nameField),
-                labeledField("Quantity *", qtyField),
-                labeledField("Unit Price (₹) *", priceField),
-                err,
-                actionBar(cancelBtn, confirmBtn));
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
 
-        Scene scene = buildScene(stage, root);
-        stage.setScene(scene);
-        cancelBtn.setOnAction(e -> stage.close());
-        confirmBtn.setOnAction(e -> {
-            String name = nameField.getText().trim();
-            if (name.isEmpty()) { err.setText("Item name is required."); return; }
-            int qty;
-            double price;
-            try { qty = Integer.parseInt(qtyField.getText().trim()); if (qty < 0) throw new NumberFormatException(); }
-            catch (NumberFormatException ex) { err.setText("Enter a valid quantity (≥ 0)."); return; }
-            try { price = Double.parseDouble(priceField.getText().trim()); if (price < 0) throw new NumberFormatException(); }
-            catch (NumberFormatException ex) { err.setText("Enter a valid price (≥ 0)."); return; }
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Add Item");
+        confirmBtn.getStyleClass().add("btn");
 
-            InventoryItem item = new InventoryItem();
-            item.setName(name); item.setQuantity(qty); item.setUnitPrice(price);
-            stage.close();
-            if (onSaved != null) onSaved.accept(item);
-        });
-        stage.showAndWait();
-    }
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
 
-    // ─── Edit Inventory Item dialog ────────────────────────────────────────────
-
-    public static void showEditItem(InventoryItem existing, Consumer<InventoryItem> onSaved) {
-        Stage stage = buildDialogStage("Edit Item", 440, 360);
-        VBox root = dialogRoot();
-
-        Label title = sectionTitle("Edit Item");
-        TextField nameField  = styledField("Item name");  nameField.setText(existing.getName());
-        TextField qtyField   = styledField("0");          qtyField.setText(String.valueOf(existing.getQuantity()));
-        TextField priceField = styledField("0.00");        priceField.setText(String.valueOf(existing.getUnitPrice()));
-        Label err = errLabel();
-
-        Button cancelBtn  = new Button("Cancel");    cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Save Changes"); confirmBtn.getStyleClass().add("btn");
-
-        root.getChildren().addAll(
-                title, new Separator(),
-                labeledField("Item Name *", nameField),
-                labeledField("Quantity *", qtyField),
-                labeledField("Unit Price (₹) *", priceField),
-                err,
-                actionBar(cancelBtn, confirmBtn));
+        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
 
         Scene scene = buildScene(stage, root);
         stage.setScene(scene);
+
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
             String name = nameField.getText().trim();
-            if (name.isEmpty()) { err.setText("Item name is required."); return; }
+            if (name.isEmpty()) { err.setText("Name is required."); return; }
             int qty;
+            try {
+                qty = Integer.parseInt(qtyField.getText().trim());
+                if (qty < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Quantity must be a non-negative integer.");
+                return;
+            }
             double price;
-            try { qty = Integer.parseInt(qtyField.getText().trim()); if (qty < 0) throw new NumberFormatException(); }
-            catch (NumberFormatException ex) { err.setText("Enter a valid quantity (≥ 0)."); return; }
-            try { price = Double.parseDouble(priceField.getText().trim()); if (price < 0) throw new NumberFormatException(); }
-            catch (NumberFormatException ex) { err.setText("Enter a valid price (≥ 0)."); return; }
-
-            existing.setName(name); existing.setQuantity(qty); existing.setUnitPrice(price);
+            try {
+                price = Double.parseDouble(priceField.getText().trim());
+                if (price < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Unit price must be a non-negative number.");
+                return;
+            }
+            InventoryItem saved = AppServices.inventory().addItem(name, qty, price);
             stage.close();
-            if (onSaved != null) onSaved.accept(existing);
+            if (onSaved != null) onSaved.accept(saved);
         });
+
         stage.showAndWait();
     }
 
-    // ─── Stock In / Out dialog ─────────────────────────────────────────────────
+    // ─── Edit Inventory Item dialog ───────────────────────────────────────────
 
-    public static void showStockAdjust(List<InventoryItem> items, BiConsumer<Integer, Integer> onConfirm) {
-        Stage stage = buildDialogStage("Stock In / Stock Out", 460, 340);
-        VBox root = dialogRoot();
+    public static void showEditItem(InventoryItem item, Consumer<InventoryItem> onSaved) {
+        Stage stage = buildDialogStage("Edit Item — " + item.getName(), 440, 360);
 
-        Label title = sectionTitle("Adjust Stock");
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
+
+        Label title = new Label("Edit Item");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Update the details for \"" + item.getName() + "\".");
+        sub.setStyle("-fx-text-fill: -text-muted;");
+
+        TextField nameField  = styledField("Item name");
+        nameField.setText(item.getName());
+        TextField qtyField   = styledField("0");
+        qtyField.setText(String.valueOf(item.getQuantity()));
+        TextField priceField = styledField("0.00");
+        priceField.setText(String.valueOf(item.getUnitPrice()));
+
+        VBox form = new VBox(12,
+                labeledField("Name *", nameField),
+                labeledField("Quantity", qtyField),
+                labeledField("Unit Price (₹)", priceField));
+
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Save Changes");
+        confirmBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
+
+        Scene scene = buildScene(stage, root);
+        stage.setScene(scene);
+
+        cancelBtn.setOnAction(e -> stage.close());
+        confirmBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) { err.setText("Name is required."); return; }
+            int qty;
+            try {
+                qty = Integer.parseInt(qtyField.getText().trim());
+                if (qty < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Quantity must be a non-negative integer.");
+                return;
+            }
+            double price;
+            try {
+                price = Double.parseDouble(priceField.getText().trim());
+                if (price < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Unit price must be a non-negative number.");
+                return;
+            }
+            item.setName(name);
+            item.setQuantity(qty);
+            item.setUnitPrice(price);
+            InventoryItem updated = AppServices.inventory().updateItem(item);
+            stage.close();
+            if (onSaved != null) onSaved.accept(updated);
+        });
+
+        stage.showAndWait();
+    }
+
+    // ─── Stock Adjustment dialog ──────────────────────────────────────────────
+
+    public static void showStockAdjust(List<InventoryItem> items, BiConsumer<Integer, Integer> onAdjust) {
+        Stage stage = buildDialogStage("Adjust Stock", 440, 320);
+
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
+
+        Label title = new Label("Stock Adjustment");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label sub = new Label("Select an item and enter the stock change amount.");
+        sub.setStyle("-fx-text-fill: -text-muted;");
 
         ComboBox<InventoryItem> itemCombo = new ComboBox<>();
         itemCombo.getItems().addAll(items);
         itemCombo.setPromptText("Select item…");
-        itemCombo.setPrefWidth(320);
+        itemCombo.setPrefWidth(300);
         itemCombo.getStyleClass().add("combo");
         itemCombo.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(InventoryItem item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName() + " (qty: " + item.getQuantity() + ")");
+            @Override protected void updateItem(InventoryItem it, boolean empty) {
+                super.updateItem(it, empty);
+                setText(empty || it == null ? null : it.getName() + " (Qty: " + it.getQuantity() + ")");
             }
         });
         itemCombo.setButtonCell(itemCombo.getCellFactory().call(null));
 
-        ToggleGroup tg = new ToggleGroup();
-        RadioButton inBtn  = new RadioButton("Stock In");   inBtn.setToggleGroup(tg);  inBtn.setSelected(true);
-        RadioButton outBtn = new RadioButton("Stock Out");  outBtn.setToggleGroup(tg);
-        HBox dirRow = new HBox(20, inBtn, outBtn);
+        TextField deltaField = styledField("e.g. +10 or -5");
 
-        TextField deltaField = styledField("0");
-        Label err = errLabel();
-
-        Button cancelBtn  = new Button("Cancel");  cancelBtn.getStyleClass().addAll("btn","btn-secondary");
-        Button confirmBtn = new Button("Apply");   confirmBtn.getStyleClass().add("btn");
-
-        root.getChildren().addAll(
-                title, new Separator(),
+        VBox form = new VBox(12,
                 labeledField("Item", itemCombo),
-                labeledField("Direction", dirRow),
-                labeledField("Quantity", deltaField),
-                err,
-                actionBar(cancelBtn, confirmBtn));
+                labeledField("Quantity Change (+/-)", deltaField));
+
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+
+        Button cancelBtn  = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button confirmBtn = new Button("Adjust Stock");
+        confirmBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, confirmBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(new VBox(4, title, sub), new Separator(), form, err, btns);
 
         Scene scene = buildScene(stage, root);
         stage.setScene(scene);
+
         cancelBtn.setOnAction(e -> stage.close());
         confirmBtn.setOnAction(e -> {
-            InventoryItem item = itemCombo.getValue();
-            if (item == null) { err.setText("Please select an item."); return; }
+            InventoryItem selected = itemCombo.getValue();
+            if (selected == null) { err.setText("Please select an item."); return; }
             int delta;
-            try { delta = Integer.parseInt(deltaField.getText().trim()); if (delta <= 0) throw new NumberFormatException(); }
-            catch (NumberFormatException ex) { err.setText("Enter a positive quantity."); return; }
-            int signedDelta = outBtn.isSelected() ? -delta : delta;
-            if (signedDelta < 0 && item.getQuantity() + signedDelta < 0) {
-                err.setText("Not enough stock. Available: " + item.getQuantity()); return;
+            try {
+                String text = deltaField.getText().trim().replace("+", "");
+                delta = Integer.parseInt(text);
+                if (delta == 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Enter a non-zero integer (e.g. +10 or -5).");
+                return;
             }
             stage.close();
-            if (onConfirm != null) onConfirm.accept(item.getId(), signedDelta);
+            if (onAdjust != null) onAdjust.accept(selected.getId(), delta);
         });
+
         stage.showAndWait();
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // ─── Add Credit Info dialog ───────────────────────────────────────────────
+
+    public static void showAddCreditInfo() {
+        Stage stage = buildDialogStage("Add New Credit", 480, 260);
+        stage.setResizable(false);
+
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(28));
+        root.getStyleClass().add("dialog-root");
+
+        Label title = new Label("Add New Credit");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+        Label msg = new Label(
+                "Credits are created automatically when you record a payment on a customer's page.\n\n"
+                + "Navigate to Accounts → open a customer → Record Payment to add a credit entry.");
+        msg.setWrapText(true);
+        msg.setStyle("-fx-text-fill: -text-muted;");
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button goBtn = new Button("Go to Customers Page");
+        goBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, goBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(new VBox(4, title, msg), new Separator(), btns);
+
+        Scene scene = buildScene(stage, root);
+        stage.setScene(scene);
+
+        cancelBtn.setOnAction(e -> stage.close());
+        goBtn.setOnAction(e -> {
+            stage.close();
+            App.getShell().navigate("accounts");
+        });
+
+        stage.showAndWait();
+    }
+
+    // ─── Edit Transaction dialog ──────────────────────────────────────────────
+
+    public static void showEditTransaction(Transaction t, Runnable onSave) {
+        Stage stage = buildDialogStage("Edit Transaction", 520, 480);
+        stage.setResizable(false);
+
+        ScrollPane scroll = new ScrollPane();
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setMaxHeight(600);
+        scroll.getStyleClass().add("scroll-pane");
+
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(24));
+        root.getStyleClass().add("dialog-root");
+        scroll.setContent(root);
+
+        Label title = new Label("Edit Transaction");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+
+        // Read-only info
+        VBox infoForm = new VBox(12,
+                labeledField("Description / Items", readonlyField(
+                        t.getDescription() != null ? t.getDescription() : t.getType().name())),
+                labeledField("Original Total Amount (₹)", readonlyField(UiUtil.money(t.getAmount()))),
+                labeledField("Transaction Date", readonlyField(UiUtil.date(t.getDate()))),
+                labeledField("Current Balance (₹)", readonlyField(UiUtil.money(t.getBalance()))));
+
+        // Editable pay later amount
+        TextField payLaterField = styledField("0");
+        payLaterField.setText("0");
+
+        // Payment date picker
+        DatePicker paymentDatePicker = new DatePicker(LocalDate.now());
+        paymentDatePicker.getStyleClass().add("date-picker");
+        paymentDatePicker.setPrefWidth(300);
+
+        // Live remaining balance label
+        Label remainingLabel = new Label(UiUtil.money(t.getBalance()));
+        remainingLabel.setStyle("-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -success-600;");
+
+        Runnable updateRemaining = () -> {
+            double payAmt = 0;
+            try { payAmt = Double.parseDouble(payLaterField.getText().trim()); }
+            catch (NumberFormatException ignored) {}
+            double newBal = t.getBalance() - payAmt;
+            remainingLabel.setText(UiUtil.money(Math.max(0, newBal)));
+            remainingLabel.setStyle(newBal > 0
+                    ? "-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -error-600;"
+                    : "-fx-font-weight:700; -fx-font-size:14px; -fx-text-fill: -success-600;");
+        };
+
+        payLaterField.textProperty().addListener((obs, o, n) -> updateRemaining.run());
+
+        VBox editForm = new VBox(12,
+                labeledField("Pay Later Amount (₹)", payLaterField),
+                labeledField("Payment Date", paymentDatePicker));
+
+        HBox remainingRow = new HBox(12, new Label("Remaining Balance:"), remainingLabel);
+        remainingRow.setAlignment(Pos.CENTER_LEFT);
+        remainingRow.setStyle("-fx-background-color: -surface-2; -fx-padding: 10 14; -fx-background-radius: 8;");
+
+        Label err = new Label();
+        err.setStyle("-fx-text-fill: -error-600; -fx-font-size:12px;");
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().addAll("btn", "btn-secondary");
+        Button saveBtn = new Button("Save");
+        saveBtn.getStyleClass().add("btn");
+
+        HBox btns = new HBox(12, cancelBtn, saveBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(title, new Separator(), infoForm, new Separator(),
+                editForm, remainingRow, err, btns);
+
+        Scene scene = buildScene(stage, scroll);
+        stage.setScene(scene);
+
+        cancelBtn.setOnAction(e -> stage.close());
+        saveBtn.setOnAction(e -> {
+            double payAmt;
+            try {
+                payAmt = Double.parseDouble(payLaterField.getText().trim());
+                if (payAmt < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                err.setText("Please enter a valid non-negative amount.");
+                return;
+            }
+            if (payAmt == 0) { stage.close(); return; }
+            LocalDate payDate = paymentDatePicker.getValue() != null
+                    ? paymentDatePicker.getValue() : LocalDate.now();
+            AppServices.transactions().recordPartialPayment(t.getId(), payAmt, payDate);
+            stage.close();
+            if (onSave != null) onSave.run();
+        });
+
+        stage.showAndWait();
+    }
+
+    // ─── View Transaction dialog ──────────────────────────────────────────────
+
+    public static void showViewTransaction(Transaction t) {
+        Stage stage = buildDialogStage("Transaction Details", 520, 400);
+        stage.setResizable(false);
+
+        ScrollPane scroll = new ScrollPane();
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setMaxHeight(600);
+        scroll.getStyleClass().add("scroll-pane");
+
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(24));
+        root.getStyleClass().add("dialog-root");
+        scroll.setContent(root);
+
+        Label title = new Label("Transaction Details");
+        title.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
+
+        VBox form = new VBox(12,
+                labeledField("Customer", readonlyField(t.getCustomerName() != null ? t.getCustomerName() : "—")),
+                labeledField("Type", readonlyField(t.getType().name())),
+                labeledField("Total Amount (₹)", readonlyField(UiUtil.money(t.getAmount()))),
+                labeledField("Paid Amount (₹)", readonlyField(UiUtil.money(t.getPaidAmount()))),
+                labeledField("Remaining Balance (₹)", readonlyField(UiUtil.money(t.getBalance()))),
+                labeledField("Date", readonlyField(UiUtil.date(t.getDate()))),
+                labeledField("Status", readonlyField(t.isOngoing() ? "Pending" : "All Cleared")),
+                labeledField("Description / Items", readonlyField(
+                        t.getDescription() != null ? t.getDescription() : "—")));
+
+        Button closeBtn = new Button("Close");
+        closeBtn.getStyleClass().addAll("btn", "btn-secondary");
+
+        HBox btns = new HBox(closeBtn);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        root.getChildren().addAll(title, new Separator(), form, btns);
+
+        Scene scene = buildScene(stage, scroll);
+        stage.setScene(scene);
+
+        closeBtn.setOnAction(e -> stage.close());
+
+        stage.showAndWait();
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private static Stage buildDialogStage(String title, double width, double height) {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initOwner(App.getScene().getWindow());
         stage.setTitle(title);
+        stage.setWidth(width);
         stage.setMinWidth(width);
         stage.setMinHeight(height);
+        stage.setResizable(false);
         return stage;
     }
 
@@ -484,7 +809,10 @@ public final class Dialogs {
     private static void applyThemeOnShow(Alert alert) {
         alert.setOnShowing(e -> {
             Scene scene = alert.getDialogPane().getScene();
-            if (scene != null) { ThemeManager.register(scene); ThemeManager.apply(scene); }
+            if (scene != null) {
+                ThemeManager.register(scene);
+                ThemeManager.apply(scene);
+            }
         });
         alert.setOnHidden(e -> {
             Scene scene = alert.getDialogPane().getScene();
@@ -492,37 +820,11 @@ public final class Dialogs {
         });
     }
 
-    private static VBox dialogRoot() {
-        VBox box = new VBox(18);
-        box.setPadding(new Insets(28));
-        box.getStyleClass().add("dialog-root");
-        return box;
-    }
-
-    private static Label sectionTitle(String text) {
-        Label l = new Label(text);
-        l.setStyle("-fx-font-size:18px; -fx-font-weight:700;");
-        return l;
-    }
-
-    private static Label errLabel() {
-        Label l = new Label();
-        l.getStyleClass().add("text-error");
-        l.setStyle("-fx-font-size:12px;");
-        return l;
-    }
-
-    private static HBox actionBar(Button... buttons) {
-        HBox bar = new HBox(12, buttons);
-        bar.setAlignment(Pos.CENTER_RIGHT);
-        return bar;
-    }
-
     private static VBox labeledField(String labelText, javafx.scene.Node field) {
         Label lbl = new Label(labelText);
-        lbl.getStyleClass().add("text-muted");
-        lbl.setStyle("-fx-font-size:12px;");
-        return new VBox(5, lbl, field);
+        lbl.setStyle("-fx-font-size:12px; -fx-text-fill: -text-muted;");
+        VBox box = new VBox(5, lbl, field);
+        return box;
     }
 
     private static TextField styledField(String prompt) {

@@ -1,6 +1,7 @@
 package com.finixis.controller;
 
 import com.finixis.App;
+import com.finixis.viewmodel.ThemeManager;
 import com.finixis.viewmodel.UiUtil;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,6 +20,7 @@ public class ShellController implements Initializable {
     @FXML private StackPane contentHost;
     @FXML private Button navHome, navAccounts, navCredit, navInventory,
             navTransactions, navReports;
+    @FXML private Button themeToggleBtn;
 
     private Button currentNav;
 
@@ -27,6 +29,19 @@ public class ShellController implements Initializable {
         App.setShell(this);
         currentNav = navHome;
         loadPage("home");
+        updateThemeBtn();
+    }
+
+    private void updateThemeBtn() {
+        if (themeToggleBtn == null) return;
+        boolean dark = ThemeManager.isDark();
+        themeToggleBtn.setText(dark ? "\u2600 Light" : "\uD83C\uDF19 Dark");
+    }
+
+    @FXML private void onToggleTheme() {
+        ThemeManager.toggle();
+        updateThemeBtn();
+        UiUtil.toast(App.getRoot(), ThemeManager.isDark() ? "Dark mode on" : "Light mode on");
     }
 
     private void loadPage(String name) {

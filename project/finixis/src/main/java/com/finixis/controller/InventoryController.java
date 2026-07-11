@@ -61,13 +61,13 @@ public class InventoryController implements Initializable, PageController {
         });
 
         actionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button editBtn = new Button();
-            private final Button delBtn  = new Button();
+            private final Button editBtn = new Button("Edit", new FontIcon("fas-pencil-alt"));
+            private final Button delBtn  = new Button("Delete", new FontIcon("fas-trash"));
             {
-                editBtn.getStyleClass().add("icon-btn");
-                editBtn.setGraphic(new FontIcon("fas-pencil-alt"));
-                delBtn.getStyleClass().addAll("icon-btn", "icon-btn-danger");
-                delBtn.setGraphic(new FontIcon("fas-trash"));
+                editBtn.getStyleClass().addAll("btn", "btn-secondary");
+                editBtn.setGraphicTextGap(6);
+                delBtn.getStyleClass().addAll("btn", "btn-danger");
+                delBtn.setGraphicTextGap(6);
 
                 editBtn.setOnAction(e -> {
                     InventoryItem it = getTableView().getItems().get(getIndex());

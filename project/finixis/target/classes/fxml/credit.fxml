@@ -20,6 +20,11 @@
         <TextField fx:id="searchField" promptText="Search credits..." styleClass="search-box" onKeyReleased="#onSearch"/>
         <ComboBox fx:id="statusCombo" styleClass="combo" onAction="#onFilter"/>
         <ComboBox fx:id="sortCombo" styleClass="combo" onAction="#onSort"/>
+        <Label text="From:" styleClass="txn-meta"/>
+        <DatePicker fx:id="fromDate" prefWidth="140" styleClass="date-picker"/>
+        <Label text="To:" styleClass="txn-meta"/>
+        <DatePicker fx:id="toDate" prefWidth="140" styleClass="date-picker"/>
+        <Button text="Apply" onAction="#onFilter" styleClass="btn,btn-secondary"/>
     </HBox>
 
     <TableView fx:id="table" VBox.vgrow="ALWAYS">
@@ -30,7 +35,7 @@
             <TableColumn fx:id="issuedCol" text="Issued" prefWidth="120"/>
             <TableColumn fx:id="dueCol" text="Due" prefWidth="120"/>
             <TableColumn fx:id="statusCol" text="Status" prefWidth="120"/>
-            <TableColumn fx:id="actionCol" text="" prefWidth="130" sortable="false"/>
+            <TableColumn fx:id="actionCol" text="Actions" prefWidth="200" sortable="false"/>
         </columns>
     </TableView>
 </VBox>

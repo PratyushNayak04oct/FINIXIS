@@ -217,6 +217,30 @@ public class JdbcTransactionRepository implements TransactionRepository {
         return t;
     }
 
+    @Override
+    public void partialPayment(int id, double amt, LocalDate date) {
+        String updateSql = "UPDATE Transaction_Credit "
+                + "SET paid_amount = paid_amount + ?, "
+                + "balance = CASE WHEN balance - ? < 0 THEN 0 ELSE balance - ? END "
+                + "WHERE transaction_id = ?";
+        try (Connection con = DatabaseConfig.get();
+             PreparedStatement ps = con.prepareStatement(updateSql)) {
+            ps.setDouble(1, amt);
+            ps.setDouble(2, amt);
+            ps.setDouble(3, amt);
+            ps.setInt(4, id);
+            ps.executeUpdate();
+        } catch (SQLException e) { throw new RuntimeException(e); }
+        // mark settled if balance reached zero
+        String settleSql = "UPDATE Transaction_Credit SET is_settled = TRUE "
+                + "WHERE transaction_id = ? AND balance <= 0";
+        try (Connection con = DatabaseConfig.get();
+             PreparedStatement ps = con.prepareStatement(settleSql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) { throw new RuntimeException(e); }
+    }
+
     private void insertLineItems(Connection con, int txnId, List<TransactionLineItem> items) throws SQLException {
         if (items == null || items.isEmpty()) return;
         String sql = "INSERT INTO Transaction_Credit_Item(transaction_id,item_id,quantity,unit_price_snapshot,line_total) VALUES(?,?,?,?,?)";

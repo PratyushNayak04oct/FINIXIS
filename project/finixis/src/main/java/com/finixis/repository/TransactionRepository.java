@@ -23,4 +23,7 @@ public interface TransactionRepository {
     List<Transaction>     findAll();
     List<Transaction>     findByCustomer(int customerId);
     List<Transaction>     findByDateRange(LocalDate from, LocalDate to);
+
+    // --- Partial payment ---
+    void partialPayment(int id, double amt, LocalDate date);
 }

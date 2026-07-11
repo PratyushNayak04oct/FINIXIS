@@ -33,6 +33,11 @@
                        styleClass="search-box" onKeyReleased="#onSearch"/>
             <ComboBox fx:id="typeCombo" styleClass="combo" onAction="#onFilter"/>
             <ComboBox fx:id="dateRangeCombo" styleClass="combo" onAction="#onFilter"/>
+            <Label text="From:" styleClass="txn-meta"/>
+            <DatePicker fx:id="fromDate" prefWidth="140" styleClass="date-picker"/>
+            <Label text="To:" styleClass="txn-meta"/>
+            <DatePicker fx:id="toDate" prefWidth="140" styleClass="date-picker"/>
+            <Button text="Apply" onAction="#onFilter" styleClass="btn,btn-secondary"/>
         </HBox>
 
         <!-- Status legend -->

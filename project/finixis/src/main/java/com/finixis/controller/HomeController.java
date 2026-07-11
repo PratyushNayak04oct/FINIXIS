@@ -9,8 +9,14 @@ import com.finixis.service.TransactionService;
 import com.finixis.viewmodel.UiUtil;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.net.URL;
 import java.time.LocalDate;
@@ -22,7 +28,7 @@ public class HomeController implements Initializable, PageController {
 
     @FXML private Label todayLabel, pendingCredits, pendingCreditsCount,
             pendingDebits, pendingDebitsCount, lowStock, totalCustomers;
-    @FXML private ListView<String> recentList;
+    @FXML private VBox recentBox;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -32,13 +38,11 @@ public class HomeController implements Initializable, PageController {
 
         todayLabel.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d, yyyy")));
 
-        // Pending credits = outstanding balance on unpaid credit transactions
         double creditTotal = transactions.totalCreditOutstanding();
         long   creditCount = transactions.getAllCredits().stream().filter(Transaction::isOngoing).count();
         pendingCredits.setText(UiUtil.money(creditTotal));
         pendingCreditsCount.setText(creditCount + " open");
 
-        // Pending debits = money we owe customers (negative balance side)
         double debitTotal = transactions.totalDebits();
         long   debitCount = transactions.getAllDebits().size();
         pendingDebits.setText(UiUtil.money(debitTotal));
@@ -50,10 +54,54 @@ public class HomeController implements Initializable, PageController {
         List<Transaction> recent = transactions.getAll().stream()
                 .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
                 .limit(6).toList();
-        recentList.getItems().addAll(recent.stream().map(t ->
-                UiUtil.date(t.getDate()) + "  —  " + t.getCustomerName() + "  ·  "
-                        + t.getType() + "  ·  " + UiUtil.money(t.getAmount())
-                        + (t.isOngoing() ? "   [pending]" : "")).toList());
+
+        if (recent.isEmpty()) {
+            Label empty = new Label("No recent activity.");
+            empty.getStyleClass().add("text-muted");
+            recentBox.getChildren().add(empty);
+        } else {
+            for (Transaction t : recent) {
+                recentBox.getChildren().add(buildActivityRow(t));
+            }
+        }
+    }
+
+    private HBox buildActivityRow(Transaction t) {
+        HBox row = new HBox(12);
+        row.getStyleClass().add("txn-row");
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        // Colored circle avatar
+        boolean isCredit = t.getType() == Transaction.Type.CREDIT
+                || t.getType() == Transaction.Type.PAYMENT;
+        Label avatar = new Label(isCredit ? "↑" : "↓");
+        avatar.getStyleClass().addAll("chip", isCredit ? "chip-success" : "chip-error");
+        avatar.setMinWidth(36);
+        avatar.setAlignment(Pos.CENTER);
+
+        // Left VBox: name + type
+        VBox left = new VBox(2);
+        Label nameLabel = new Label(t.getCustomerName() != null ? t.getCustomerName() : "—");
+        nameLabel.getStyleClass().addAll("txn-desc");
+        Label typeMeta = new Label(t.getType().name() + "  ·  " + UiUtil.money(t.getAmount()));
+        typeMeta.getStyleClass().add("txn-meta");
+        left.getChildren().addAll(nameLabel, typeMeta);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Date on the right
+        Label dateLabel = new Label(UiUtil.date(t.getDate()));
+        dateLabel.getStyleClass().add("txn-meta");
+
+        // Open button
+        Button openBtn = new Button("Open", new FontIcon("fas-external-link-alt"));
+        openBtn.getStyleClass().addAll("btn", "btn-secondary");
+        openBtn.setGraphicTextGap(6);
+        openBtn.setOnAction(e -> App.getShell().openCustomer(t.getCustomerId()));
+
+        row.getChildren().addAll(avatar, left, spacer, dateLabel, openBtn);
+        return row;
     }
 
     @FXML private void goAccounts()     { App.getShell().navigate("accounts"); }
@@ -62,7 +110,7 @@ public class HomeController implements Initializable, PageController {
     @FXML private void goTransactions() { App.getShell().navigate("transactions"); }
     @FXML private void goReports()      { App.getShell().navigate("reports"); }
     @FXML private void onCreateInvoice() {
-        Dialogs.info("Create Invoice",
-                "Navigate to the Transaction History page and click 'Create Invoice' to generate a real PDF/Excel invoice file.");
+        UiUtil.toast(App.getRoot(), "Go to Transaction History to generate an invoice.");
+        App.getShell().navigate("transactions");
     }
 }

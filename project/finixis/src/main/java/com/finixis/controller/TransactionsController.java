@@ -6,6 +6,7 @@ import com.finixis.model.Transaction;
 import com.finixis.service.AppServices;
 import com.finixis.service.ReportService;
 import com.finixis.service.TransactionService;
+import com.finixis.viewmodel.FileGenerationService;
 import com.finixis.viewmodel.UiUtil;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -15,7 +16,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.awt.Desktop;
 import java.net.URL;
 import java.time.LocalDate;
 import java.util.*;
@@ -25,6 +28,7 @@ public class TransactionsController implements Initializable, PageController {
 
     @FXML private TextField searchField;
     @FXML private ComboBox<String> typeCombo, dateRangeCombo;
+    @FXML private DatePicker fromDate, toDate;
     @FXML private VBox groupedBox;
     @FXML private Button exportBtn, reportBtn, invoiceBtn;
 
@@ -48,12 +52,21 @@ public class TransactionsController implements Initializable, PageController {
         String q = searchField.getText().toLowerCase().trim();
         String typeFilter = typeCombo.getValue();
 
-        LocalDate cutoff = switch (dateRangeCombo.getValue()) {
-            case D30 -> LocalDate.now().minusDays(30);
-            case D90 -> LocalDate.now().minusDays(90);
-            default  -> LocalDate.of(1900, 1, 1);
-        };
+        LocalDate cutoff;
+        LocalDate upperBound = null;
+        if (fromDate != null && toDate != null
+                && fromDate.getValue() != null && toDate.getValue() != null) {
+            cutoff = fromDate.getValue();
+            upperBound = toDate.getValue();
+        } else {
+            cutoff = switch (dateRangeCombo.getValue()) {
+                case D30 -> LocalDate.now().minusDays(30);
+                case D90 -> LocalDate.now().minusDays(90);
+                default  -> LocalDate.of(1900, 1, 1);
+            };
+        }
 
+        final LocalDate finalUpper = upperBound;
         List<Transaction> txns = txnService.getAll().stream()
                 .filter(t -> q.isEmpty()
                         || (t.getCustomerName() != null && t.getCustomerName().toLowerCase().contains(q))
@@ -64,6 +77,7 @@ public class TransactionsController implements Initializable, PageController {
                     default -> true;
                 })
                 .filter(t -> !t.getDate().isBefore(cutoff))
+                .filter(t -> finalUpper == null || !t.getDate().isAfter(finalUpper))
                 .sorted(Comparator.comparing(Transaction::getDate).reversed())
                 .collect(Collectors.toList());
 
@@ -94,7 +108,6 @@ public class TransactionsController implements Initializable, PageController {
         HBox row = new HBox(14);
         row.getStyleClass().add("txn-row");
         if (t.isOngoing()) row.getStyleClass().add("txn-row-ongoing");
-        row.setOnMouseClicked(e -> App.getShell().openCustomer(t.getCustomerId()));
 
         VBox left = new VBox(3);
         Label desc = new Label(t.getDescription() != null && !t.getDescription().isBlank()
@@ -110,8 +123,14 @@ public class TransactionsController implements Initializable, PageController {
         VBox right = new VBox(4);
         right.setAlignment(Pos.CENTER_RIGHT);
 
-        Label amt = new Label(UiUtil.money(t.getAmount()));
-        amt.getStyleClass().add("txn-amount");
+        Label totalLbl = new Label("Total: " + UiUtil.money(t.getAmount()));
+        totalLbl.getStyleClass().add("txn-meta");
+
+        Label paidLbl = new Label("Paid: " + UiUtil.money(t.getPaidAmount()));
+        paidLbl.getStyleClass().add("txn-meta");
+
+        Label remainLbl = new Label("Remaining: " + UiUtil.money(t.getBalance()));
+        remainLbl.getStyleClass().add("txn-amount");
 
         Label status = new Label();
         status.getStyleClass().add("chip");
@@ -119,20 +138,43 @@ public class TransactionsController implements Initializable, PageController {
         if (!t.isOngoing()) {
             status.setText("All Cleared");
             status.getStyleClass().add("chip-success");
-            amt.getStyleClass().add("text-normal");
+            remainLbl.getStyleClass().add("text-success");
         } else if (t.getType() == Transaction.Type.DEBIT) {
             status.setText("To Pay");
             status.getStyleClass().add("chip-error");
-            amt.getStyleClass().addAll("text-error", "font-bold");
+            remainLbl.getStyleClass().addAll("text-error", "font-bold");
         } else {
             status.setText("To Receive");
             status.getStyleClass().add("chip-primary");
-            amt.getStyleClass().add("text-normal");
+            remainLbl.getStyleClass().add("text-success");
         }
 
-        right.getChildren().addAll(amt, status);
-        row.getChildren().addAll(left, spacer, right);
+        right.getChildren().addAll(totalLbl, paidLbl, remainLbl, status);
+
+        Button openBtn = new Button("Open");
+        openBtn.getStyleClass().addAll("btn", "btn-secondary");
+        openBtn.setOnAction(e -> App.getShell().openCustomer(t.getCustomerId()));
+
+        Button invoiceRowBtn = new Button("Invoice", new FontIcon("fas-file-invoice"));
+        invoiceRowBtn.getStyleClass().addAll("btn", "btn-secondary");
+        invoiceRowBtn.setGraphicTextGap(6);
+        invoiceRowBtn.setOnAction(e -> generateAndOpenInvoice(t));
+
+        row.getChildren().addAll(left, spacer, right, openBtn, invoiceRowBtn);
         return row;
+    }
+
+    private void generateAndOpenInvoice(Transaction t) {
+        try {
+            GeneratedFile gf = FileGenerationService.generateInvoiceForTransaction(t);
+            reportService.saveFile(gf);
+            Dialogs.showFileDownloadedDialog(gf.getFile());
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Desktop.getDesktop().open(gf.getFile());
+            }
+        } catch (Exception ex) {
+            Dialogs.info("Invoice Error", "Could not generate invoice:\n" + ex.getMessage());
+        }
     }
 
     @FXML private void onSearch() { render(); }
@@ -147,7 +189,8 @@ public class TransactionsController implements Initializable, PageController {
     }
 
     @FXML private void onInvoice() {
-        runFileAction(() -> reportService.createInvoice(txnService), "Invoice");
+        UiUtil.toast(App.getRoot(), "Select a customer and transaction to create an invoice.");
+        App.getShell().navigate("accounts");
     }
 
     private void runFileAction(java.util.function.Supplier<List<GeneratedFile>> action, String label) {

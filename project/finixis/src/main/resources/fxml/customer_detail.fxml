@@ -75,7 +75,14 @@
             <HBox alignment="CENTER_LEFT" spacing="10">
                 <FontIcon iconLiteral="fas-history" styleClass="icon-sm"/>
                 <Label text="TRANSACTION HISTORY" styleClass="card-title" HBox.hgrow="ALWAYS"/>
-                <ComboBox fx:id="dateRangeCombo" styleClass="combo" onAction="#onDateRange"/>
+            </HBox>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ComboBox fx:id="dateRangeCombo" styleClass="combo" prefWidth="140" onAction="#onDateRange"/>
+                <Label text="From:" styleClass="txn-meta"/>
+                <DatePicker fx:id="fromDate" styleClass="date-picker" prefWidth="140"/>
+                <Label text="To:" styleClass="txn-meta"/>
+                <DatePicker fx:id="toDate" styleClass="date-picker" prefWidth="140"/>
+                <Button text="Apply" onAction="#onDateRange" styleClass="btn,btn-secondary"/>
             </HBox>
             <VBox fx:id="historyBox" spacing="6"/>
         </VBox>

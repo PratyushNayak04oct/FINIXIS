@@ -7,7 +7,6 @@ module com.finixis {
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.fontawesome5;
     requires java.desktop;
-    requires java.sql;
 
     // Database stack
     requires com.zaxxer.hikari;   // HikariCP connection pool

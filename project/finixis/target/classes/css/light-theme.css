@@ -409,3 +409,85 @@
 .chart-legend-item-symbol { }
 .default-color0.chart-bar { -fx-bar-fill: -primary-500; }
 .default-color1.chart-bar { -fx-bar-fill: -success-500; }
+
+/* ComboBox popup light mode */
+.combo-box-popup .list-view {
+    -fx-background-color: -surface;
+    -fx-border-color: -border;
+}
+.combo-box-popup .list-cell {
+    -fx-background-color: -surface;
+    -fx-text-fill: -text;
+}
+.combo-box-popup .list-cell:hover,
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: -primary-100;
+    -fx-text-fill: -primary-700;
+}
+.combo-box-popup .list-cell:selected,
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: -primary-600;
+    -fx-text-fill: -neutral-0;
+}
+
+/* Table cell alignment and padding */
+.table-cell {
+    -fx-alignment: CENTER;
+    -fx-padding: 10 14;
+}
+.column-header .label {
+    -fx-alignment: CENTER;
+    -fx-padding: 10 14;
+    -fx-font-weight: 600;
+}
+.table-row-cell {
+    -fx-pref-height: 48px;
+}
+
+/* DatePicker light mode */
+.date-picker {
+    -fx-background-color: -surface;
+    -fx-border-color: -border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+.date-picker .text-field {
+    -fx-background-color: -surface;
+    -fx-text-fill: -text;
+    -fx-border-color: transparent;
+    -fx-pref-height: 36;
+}
+.date-picker-popup {
+    -fx-background-color: -surface;
+    -fx-border-color: -border;
+}
+.date-picker-popup .month-year-pane {
+    -fx-background-color: -surface;
+}
+.date-picker-popup .calendar-grid {
+    -fx-background-color: -surface;
+}
+.date-picker-popup .day-name-cell,
+.date-picker-popup .day-cell {
+    -fx-background-color: -surface;
+    -fx-text-fill: -text;
+}
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: -primary-50;
+}
+.date-picker-popup .selected {
+    -fx-background-color: -primary-500;
+    -fx-text-fill: white;
+}
+.date-picker-popup .today {
+    -fx-border-color: -primary-500;
+}
+
+/* Recent activity card */
+.recent-activity {
+    -fx-background-color: -surface;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-color: -border;
+    -fx-border-width: 1;
+}

@@ -32,7 +32,7 @@
             <TableColumn fx:id="qtyCol" text="Qty" prefWidth="80"/>
             <TableColumn fx:id="priceCol" text="Unit Price" prefWidth="110"/>
             <TableColumn fx:id="stockCol" text="Status" prefWidth="120"/>
-            <TableColumn fx:id="actionCol" text="Actions" prefWidth="120" sortable="false"/>
+            <TableColumn fx:id="actionCol" text="Actions" prefWidth="200" sortable="false"/>
         </columns>
     </TableView>
 </VBox>

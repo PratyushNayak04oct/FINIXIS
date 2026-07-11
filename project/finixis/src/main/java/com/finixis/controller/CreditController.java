@@ -11,6 +11,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.net.URL;
 import java.time.LocalDate;
@@ -26,6 +28,7 @@ public class CreditController implements Initializable, PageController {
     @FXML private TextField searchField;
     @FXML private ComboBox<String> statusCombo, sortCombo;
     @FXML private Button addCreditBtn;
+    @FXML private DatePicker fromDate, toDate;
     @FXML private TableView<Credit> table;
     @FXML private TableColumn<Credit, String> customerCol, descCol;
     @FXML private TableColumn<Credit, Boolean> statusCol;
@@ -89,6 +92,8 @@ public class CreditController implements Initializable, PageController {
 
         actionCol.setCellFactory(col -> new TableCell<>() {
             private final Button settleBtn = new Button("Mark Settled");
+            private final Button editBtn   = new Button("Edit");
+            private final Button openBtn   = new Button("View");
             {
                 settleBtn.getStyleClass().addAll("btn", "btn-secondary");
                 settleBtn.setOnAction(e -> {
@@ -104,11 +109,36 @@ public class CreditController implements Initializable, PageController {
                         }
                     }
                 });
+
+                editBtn.setGraphic(new FontIcon("fas-pencil-alt"));
+                editBtn.getStyleClass().addAll("btn", "btn-secondary");
+                editBtn.setGraphicTextGap(6);
+                editBtn.setOnAction(e -> {
+                    Credit c = getTableView().getItems().get(getIndex());
+                    txnService.getAllCredits().stream()
+                            .filter(t -> t.getId() == c.getId())
+                            .findFirst()
+                            .ifPresent(t -> Dialogs.showEditTransaction(t, () -> loadFromDb()));
+                });
+
+                openBtn.setGraphic(new FontIcon("fas-eye"));
+                openBtn.getStyleClass().addAll("btn", "btn-secondary");
+                openBtn.setGraphicTextGap(6);
+                openBtn.setOnAction(e -> {
+                    Credit c = getTableView().getItems().get(getIndex());
+                    App.getShell().openCustomer(c.getCustomerId());
+                });
             }
             @Override protected void updateItem(Credit c, boolean empty) {
                 super.updateItem(c, empty);
-                if (empty || c == null || c.isSettled()) { setGraphic(null); return; }
-                setGraphic(settleBtn);
+                if (empty || c == null) { setGraphic(null); return; }
+                HBox box;
+                if (!c.isSettled()) {
+                    box = new HBox(4, settleBtn, editBtn, openBtn);
+                } else {
+                    box = new HBox(4, editBtn, openBtn);
+                }
+                setGraphic(box);
             }
         });
 
@@ -131,7 +161,7 @@ public class CreditController implements Initializable, PageController {
         c.setAmount(t.getAmount());
         c.setDescription(t.getDescription());
         c.setDateIssued(t.getDate());
-        c.setDueDate(null); // no due date in DB schema — shown as "—"
+        c.setDueDate(null);
         c.setSettled(!t.isOngoing());
         return c;
     }
@@ -139,6 +169,11 @@ public class CreditController implements Initializable, PageController {
     private List<Credit> filtered() {
         String q = searchField.getText().toLowerCase().trim();
         String status = statusCombo.getValue();
+
+        // Date range filter
+        LocalDate from = (fromDate != null) ? fromDate.getValue() : null;
+        LocalDate to   = (toDate != null)   ? toDate.getValue()   : null;
+
         List<Credit> list = allCredits.stream()
                 .filter(c -> q.isEmpty()
                         || (c.getCustomerName() != null && c.getCustomerName().toLowerCase().contains(q))
@@ -148,6 +183,8 @@ public class CreditController implements Initializable, PageController {
                     case "Settled" -> c.isSettled();
                     default -> true;
                 })
+                .filter(c -> from == null || (c.getDateIssued() != null && !c.getDateIssued().isBefore(from)))
+                .filter(c -> to   == null || (c.getDateIssued() != null && !c.getDateIssued().isAfter(to)))
                 .collect(Collectors.toList());
 
         list.sort(switch (sortCombo.getValue()) {
@@ -166,8 +203,6 @@ public class CreditController implements Initializable, PageController {
     @FXML private void onSort()   { refresh(); }
 
     @FXML private void onAddCredit() {
-        Dialogs.info("Add New Credit",
-                "Credits are created automatically when you record a payment on a customer's page.\n\n"
-                + "Navigate to Accounts → open a customer → Record Payment to add a credit entry.");
+        Dialogs.showAddCreditInfo();
     }
 }

@@ -27,12 +27,13 @@ public class App extends Application {
         Runtime.getRuntime().addShutdownHook(new Thread(AppServices::shutdown, "db-shutdown"));
 
         root = new StackPane();
-        primaryScene = new Scene(root, 1280, 820);
+        primaryScene = new Scene(root);
 
         stage.setTitle("Finixis");
-        stage.setMinWidth(1024);
-        stage.setMinHeight(680);
+        stage.setMinWidth(900);
+        stage.setMinHeight(600);
         stage.setScene(primaryScene);   // attach scene to stage first
+        stage.setMaximized(true);
 
         // Register and apply AFTER scene is attached, so window reference is valid
         ThemeManager.register(primaryScene);

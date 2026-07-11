@@ -66,7 +66,7 @@
 
         <VBox styleClass="card,card-pad">
             <Label text="RECENT ACTIVITY" styleClass="card-title"/>
-            <ListView fx:id="recentList" styleClass="flat-list" prefHeight="200"/>
+            <VBox fx:id="recentBox" spacing="6"/>
         </VBox>
     </VBox>
 </ScrollPane>

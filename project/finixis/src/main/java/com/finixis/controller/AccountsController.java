@@ -50,11 +50,13 @@ public class AccountsController implements Initializable, PageController {
         balanceCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(Double v, boolean empty) {
                 super.updateItem(v, empty);
-                getStyleClass().removeAll("text-success", "text-error");
-                if (empty || v == null) { setText(""); return; }
+                getStyleClass().removeAll("text-success", "text-error", "text-normal");
+                if (empty || v == null) { setText(""); setStyle(""); return; }
                 setText(UiUtil.signedMoney(v));
                 setStyle("-fx-font-weight:700;");
-                getStyleClass().add(v >= 0 ? "text-success" : "text-error");
+                if (v > 0) getStyleClass().add("text-success");
+                else if (v < 0) getStyleClass().add("text-error");
+                else getStyleClass().add("text-normal");
             }
         });
 
