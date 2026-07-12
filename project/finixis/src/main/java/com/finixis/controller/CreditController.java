@@ -91,29 +91,13 @@ public class CreditController implements Initializable, PageController {
         });
 
         actionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button settleBtn = new Button("Mark Settled");
-            private final Button editBtn   = new Button("Edit");
-            private final Button openBtn   = new Button("View");
+            private final Button editBtn = new Button("Edit");
+            private final Button openBtn = new Button("View");
             {
-                settleBtn.getStyleClass().addAll("btn", "btn-secondary");
-                settleBtn.setMinWidth(80);
-                settleBtn.setOnAction(e -> {
-                    Credit c = getTableView().getItems().get(getIndex());
-                    if (!c.isSettled()) {
-                        boolean ok = Dialogs.confirm("Mark Settled",
-                                "Mark this credit as fully settled?",
-                                "This will update the balance and mark the transaction as All Cleared.");
-                        if (ok) {
-                            txnService.markSettled(c.getId());
-                            c.setSettled(true);
-                            loadFromDb();
-                        }
-                    }
-                });
-
                 editBtn.setGraphic(new FontIcon("fas-pencil-alt"));
                 editBtn.getStyleClass().addAll("btn", "btn-secondary");
                 editBtn.setGraphicTextGap(6);
+                editBtn.setMinWidth(80);
                 editBtn.setOnAction(e -> {
                     Credit c = getTableView().getItems().get(getIndex());
                     txnService.getAllCredits().stream()
@@ -125,6 +109,7 @@ public class CreditController implements Initializable, PageController {
                 openBtn.setGraphic(new FontIcon("fas-eye"));
                 openBtn.getStyleClass().addAll("btn", "btn-secondary");
                 openBtn.setGraphicTextGap(6);
+                openBtn.setMinWidth(80);
                 openBtn.setOnAction(e -> {
                     Credit c = getTableView().getItems().get(getIndex());
                     App.getShell().openCustomer(c.getCustomerId());
@@ -133,12 +118,7 @@ public class CreditController implements Initializable, PageController {
             @Override protected void updateItem(Credit c, boolean empty) {
                 super.updateItem(c, empty);
                 if (empty || c == null) { setGraphic(null); return; }
-                HBox box;
-                if (!c.isSettled()) {
-                    box = new HBox(10, settleBtn, editBtn, openBtn);
-                } else {
-                    box = new HBox(10, editBtn, openBtn);
-                }
+                HBox box = new HBox(10, editBtn, openBtn);
                 box.setAlignment(javafx.geometry.Pos.CENTER);
                 box.setPadding(new javafx.geometry.Insets(6, 8, 6, 8));
                 setGraphic(box);
